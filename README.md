@@ -1,2 +1,2 @@
 # protocol
-OpenFeature Flag Evaluation Protol
+OpenFeature Flag Evaluation Protocol
