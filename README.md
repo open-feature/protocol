@@ -6,8 +6,12 @@
   - define payloads sent between client and server
   - define the resources and functions available on the server
   - define the supported transports and encoding methods
-  - define authentication mechanisms
-- develop production-ready reference implementation (client and server)
+  - define mechanisms for metadata delivery and transport configuration (headers, etc)
+- develop production-ready reference implementation
+  - compliant server
+  - compliant client (provider)
+    - highly configurable and modular
+    - compatible with any server implementation
 
 ## Non-Goals
 
