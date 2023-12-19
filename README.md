@@ -27,3 +27,4 @@ We value the following:
   - low latency of flag evaluations
   - portability and interoperability between runtimes and languages (should be usable in web, mobile devices, and server)
   - minimum reliance on dependencies (leverage ubiquitous, native transports and encodings where possible)
+ 
