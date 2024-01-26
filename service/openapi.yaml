@@ -1,0 +1,87 @@
+openapi: "3.0.0"
+info:
+  version: 0.1.0
+  title: OpenFeature Remote Evaluation Protocol (OFREP)
+  description: OFREP define the protocol for remote flag evaluations
+  contact:
+    url: https://github.com/open-feature/protocol
+  license:
+    name: Apache 2.0
+paths:
+  /evaluate:
+    post:
+      description: OFREP flag evaluation request
+      requestBody:
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/evaluationRequest'
+      responses:
+        '200':
+          description: OFREP successful evaluation response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/success"
+        '400':
+          description: OFREP error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/failure"
+components:
+  schemas:
+    evaluationRequest:
+      description: Flag evaluation request
+      properties:
+        flagKey:
+          $ref: "#/components/schemas/flagKey"
+        flagType:
+          type: string
+          enum: [string, boolean, integer, float, object]
+          description: Type to evaluate the given flag
+        context:
+          type: object
+          description: Context information for flag evaluation
+      required:
+        - flagKey
+        - flagType
+    success:
+      description: Flag evaluation success response.
+      properties:
+        flagKey:
+          $ref: "#/components/schemas/flagKey"
+        value:
+          type: object
+          description: Flag evaluation result
+        reason:
+          type: string
+          description: Reason matching OpenFeature reason
+        variant:
+          type: string
+          description: Variant of the evaluated flag value
+        metadata:
+          type: object
+          description: Arbitrary metadata supporting flag evaluation
+      required:
+        - flagKey
+        - value
+    failure:
+      description: Flag evaluation failure response
+      properties:
+        flagKey:
+          $ref: "#/components/schemas/flagKey"
+        errorCode:
+          type: string
+          description: OpenFeature compatible error code. See https://openfeature.dev/specification/types#error-code
+        errorDetails:
+          type: string
+          description: Optional error details description for logging or other needs
+      required:
+        - flagKey
+        - errorCode
+    flagKey:
+      type: string
+      description: Feature flag key
+
+
