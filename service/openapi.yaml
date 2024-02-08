@@ -38,6 +38,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/failure'
+        '401':
+          $ref: '#/components/schemas/401'
+        '403':
+          $ref: '#/components/schemas/403'
         '404':
           description: Flag not found
           content:
@@ -76,6 +80,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/bulkEvaluationFailure'
+        '401':
+          $ref: '#/components/schemas/401'
+        '403':
+          $ref: '#/components/schemas/403'
         '429':
           description: Rate limit reached on the Flag Management System
           headers:
@@ -111,6 +119,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/flagChangeFailure'
+        '401':
+          $ref: '#/components/schemas/401'
+        '403':
+          $ref: '#/components/schemas/403'
         '429':
           description: Rate limit reached on the Flag Management System
           headers:
@@ -243,3 +255,7 @@ components:
           description: timestamp of the last changes in the flag sey (in ISO 8601 format)
           format: date-time
           example: 2024-02-07T12:00:00.000Z
+    '401':
+      description: Unauthorized - You need credentials to access the API
+    '403':
+      description: Forbidden - You are not authorized to access the API
