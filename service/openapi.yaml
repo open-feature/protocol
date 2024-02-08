@@ -7,6 +7,9 @@ info:
     url: https://github.com/open-feature/protocol
   license:
     name: Apache 2.0
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
 paths:
   /v1/evaluate/{key}:
     post:
@@ -126,6 +129,16 @@ paths:
         '500':
           description: Internal server error
 components:
+  securitySchemes:
+    BearerAuth:
+      description: (optional) Bearer Authorization to your flag management system.
+      type: http
+      scheme: bearer
+    ApiKeyAuth:
+      description: (optional) API Key to your flag management system.
+      type: apiKey
+      in: header
+      name: X-API-Key
   schemas:
     bulkEvaluationRequest:
       description: Evaluate multiple flags in one request
