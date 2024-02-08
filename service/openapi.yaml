@@ -101,21 +101,16 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  lastChange:
-                    type: string
-                    description: timestamp of the last changes in the flag sey (in ISO 8601 format)
-                    format: date-time
-                    example: 2024-02-07T12:00:00Z
-                required:
-                  - lastChange
-        
+                type: array
+                items:
+                  $ref: '#/components/schemas/flagChange'
+
         '400':
           description: OFREP error response
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/bulkEvaluationFailure"
+                $ref: '#/components/schemas/flagChangeFailure'
         '429':
           description: Rate limit reached on the Flag Management System
           headers:
@@ -162,7 +157,17 @@ components:
           description: Optional error details description for logging or other needs
       required:
         - errorCode
-          
+    flagChangeFailure:
+      description: Bulk evaluation failure response
+      properties:
+        errorCode:
+          type: string
+          description: Error code specific to the bulk evaluation.
+        errorDetails:
+          type: string
+          description: Optional error details description for logging or other needs
+      required:
+        - errorCode
     evaluationRequest:
       description: Flag evaluation request
       properties:
@@ -210,16 +215,31 @@ components:
       example: my-flag
     flagType:
       type: string
-      enum: [string, boolean, integer, float, object]
+      enum:
+        - string
+        - boolean
+        - integer
+        - float
+        - object
       description: Type to evaluate the given flag
     flags:
       type: array
       description: (optional) List of flags to be evaluated, if not set all the flag available will be evaluated against the context.
       items:
-        $ref: "#/components/schemas/key"
+        $ref: '#/components/schemas/key'
       example:
-        - "my-flag"
-        - "my-other-flag"
+        - my-flag
+        - my-other-flag
     context:
       type: object
       description: Context information for flag evaluation
+    flagChange:
+      description: Flag evaluation success response.
+      properties:
+        key:
+          $ref: '#/components/schemas/key'
+        lastChange:
+          type: string
+          description: timestamp of the last changes in the flag sey (in ISO 8601 format)
+          format: date-time
+          example: 2024-02-07T12:00:00.000Z
