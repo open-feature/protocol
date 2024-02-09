@@ -61,7 +61,7 @@ paths:
           description: Internal server error
   /ofrep/v1/evaluate:
     post:
-      description: OFREP bluk evaluation request
+      description: OFREP bulk evaluation request
       requestBody:
         content:
           application/json:
@@ -112,7 +112,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/flagChange'
-
         '400':
           description: OFREP error response
           content:
@@ -246,7 +245,7 @@ components:
       type: object
       description: Context information for flag evaluation
     flagChange:
-      description: Flag evaluation success response.
+      description: Flag changes response.
       properties:
         key:
           $ref: '#/components/schemas/key'
