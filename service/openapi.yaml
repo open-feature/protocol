@@ -156,7 +156,27 @@ components:
       description: Response of the bulk evaluation
       type: array
       items:
-        $ref: '#/components/schemas/success'
+        properties:
+          key:
+            $ref: '#/components/schemas/key'
+          value:
+            type: object
+            description: Flag evaluation result
+          reason:
+            type: string
+            description: Reason matching OpenFeature reason
+          variant:
+            type: string
+            description: Variant of the evaluated flag value
+          metadata:
+            type: object
+            description: Arbitrary metadata supporting flag evaluation
+          errorCode:
+            type: string
+            description: OpenFeature compatible error code. See https://openfeature.dev/specification/types#error-code
+          errorDetails:
+            type: string
+            description: Optional error details description for logging or other needs
     bulkEvaluationFailure:
       description: Bulk evaluation failure response
       properties:
