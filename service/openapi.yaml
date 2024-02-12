@@ -105,7 +105,7 @@ paths:
               $ref: '#/components/schemas/flags'
       responses:
         '200':
-          description: OFREP successful evaluation response
+          description: OFREP successful flag changes response
           content:
             application/json:
               schema:
@@ -249,11 +249,10 @@ components:
       properties:
         key:
           $ref: '#/components/schemas/key'
-        lastChange:
+        ETag:
           type: string
-          description: timestamp of the last changes in the flag sey (in ISO 8601 format)
-          format: date-time
-          example: 2024-02-07T12:00:00.000Z
+          description: identifier for a specific version of a resource. If the flag is modified the ETag should be different. It lets caches be more efficient and save bandwidth,the provider will refresh only the changed flags.
+          example: S1xXXGYIXzwhdCwKwMYUFRalIlJoJXLqbd0uYcm3sWg=
     '401':
       description: Unauthorized - You need credentials to access the API
     '403':
