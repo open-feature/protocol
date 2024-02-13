@@ -233,6 +233,7 @@ components:
           $ref: '#/components/schemas/key'
         errorCode:
           type: string
+          enum: [FLAG_NOT_FOUND,PARSE_ERROR,TYPE_MISMATCH,TARGETING_KEY_MISSING,INVALID_CONTEXT,GENERAL]
           description: OpenFeature compatible error code. See https://openfeature.dev/specification/types#error-code
         errorDetails:
           type: string
@@ -273,6 +274,13 @@ components:
           type: string
           description: identifier for a specific version of a resource. If the flag is modified the ETag should be different. It lets caches be more efficient and save bandwidth,the provider will refresh only the changed flags.
           example: S1xXXGYIXzwhdCwKwMYUFRalIlJoJXLqbd0uYcm3sWg=
+        errorCode:
+          type: string
+          enum: [FLAG_NOT_FOUND,PARSE_ERROR,GENERAL]
+          description: OpenFeature compatible error code. See https://openfeature.dev/specification/types#error-code
+        errorDetails:
+          type: string
+          description: Optional error details description for logging or other needs
     '401':
       description: Unauthorized - You need credentials to access the API
     '403':
