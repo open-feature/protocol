@@ -39,9 +39,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/failure'
         '401':
-          $ref: '#/components/schemas/401'
+          description: Unauthorized - You need credentials to access the API
         '403':
-          $ref: '#/components/schemas/403'
+          description: Forbidden - You are not authorized to access the API
         '404':
           description: Flag not found
           content:
@@ -81,9 +81,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/bulkEvaluationFailure'
         '401':
-          $ref: '#/components/schemas/401'
+          description: Unauthorized - You need credentials to access the API
         '403':
-          $ref: '#/components/schemas/403'
+          description: Forbidden - You are not authorized to access the API
         '429':
           description: Rate limit reached on the Flag Management System
           headers:
@@ -119,9 +119,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/flagChangeFailure'
         '401':
-          $ref: '#/components/schemas/401'
+          description: Unauthorized - You need credentials to access the API
         '403':
-          $ref: '#/components/schemas/403'
+          description: Forbidden - You are not authorized to access the API
         '429':
           description: Rate limit reached on the Flag Management System
           headers:
@@ -281,7 +281,3 @@ components:
         errorDetails:
           type: string
           description: Optional error details description for logging or other needs
-    '401':
-      description: Unauthorized - You need credentials to access the API
-    '403':
-      description: Forbidden - You are not authorized to access the API
