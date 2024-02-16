@@ -177,6 +177,8 @@ components:
           errorDetails:
             type: string
             description: Optional error details description for logging or other needs
+          ETag:
+            $ref: '#/components/schemas/flagChange/properties/ETag'
     bulkEvaluationFailure:
       description: Bulk evaluation failure response
       properties:
