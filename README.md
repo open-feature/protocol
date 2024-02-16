@@ -14,7 +14,7 @@
 
 
 ## What is OFREP?
-OpenFeature Remote Flag Evaluation Protocol, is an OpenAPI specification for flag management systems that allows the use of generic providers to connect to any feature flag service that supports the protocol.
+OpenFeature Remote Flag Evaluation Protocol, is an API specification for feature flagging that allows the use of generic providers to connect to any feature flag management systems that supports the protocol.
 
 
 ## Goals
