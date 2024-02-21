@@ -6,6 +6,7 @@ info:
   contact:
     url: https://github.com/open-feature/protocol
   license:
+    identifier: Apache 2.0
     name: Apache 2.0
 security:
   - ApiKeyAuth: []
