@@ -11,7 +11,7 @@ security:
   - ApiKeyAuth: []
   - BearerAuth: []
 paths:
-  /ofrep/v1/evaluate/{key}:
+  /ofrep/v1/evaluate/flags/{key}:
     post:
       description: OFREP flag evaluation request
       parameters:
@@ -59,7 +59,7 @@ paths:
                 example: '2024-02-07T12:00:00Z'
         '500':
           description: Internal server error
-  /ofrep/v1/evaluate:
+  /ofrep/v1/evaluate/flags/:
     post:
       description: OFREP bulk evaluation request
       requestBody:
