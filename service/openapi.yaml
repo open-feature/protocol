@@ -32,13 +32,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/success'
+                $ref: '#/components/schemas/evaluationSuccess'
         '400':
           description: OFREP error response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/failure'
+                $ref: '#/components/schemas/evaluationFailure'
         '401':
           description: Unauthorized - You need credentials to access the API
         '403':
@@ -48,7 +48,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/failure'
+                $ref: '#/components/schemas/evaluationFailure'
         '429':
           description: Rate limit reached on the Flag Management System
           headers:
@@ -57,7 +57,8 @@ paths:
               schema:
                 type: string
                 format: date-time
-                example: '2024-02-07T12:00:00Z'
+                examples:
+                  - '2024-02-07T12:00:00Z'
         '500':
           description: Internal server error
   /ofrep/v1/evaluate/flags/:
@@ -71,6 +72,11 @@ paths:
       responses:
         '200':
           description: OFREP successful evaluation response
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: Entity tag used for cache validation
           content:
             application/json:
               schema:
@@ -93,45 +99,8 @@ paths:
               schema:
                 type: string
                 format: date-time
-                example: '2024-02-07T12:00:00Z'
-        '500':
-          description: Internal server error
-  /ofrep/v1/flag/changes:
-    post:
-      description: OFREP polling endpoint to check if the flags have been modified
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/flags'
-      responses:
-        '200':
-          description: OFREP successful flag changes response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/flagChange'
-        '400':
-          description: OFREP error response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/flagChangeFailure'
-        '401':
-          description: Unauthorized - You need credentials to access the API
-        '403':
-          description: Forbidden - You are not authorized to access the API
-        '429':
-          description: Rate limit reached on the Flag Management System
-          headers:
-            Retry-Later:
-              description: Indicates when to retry the request
-              schema:
-                type: string
-                format: date-time
-                example: '2024-02-07T12:00:00Z'
+                examples:
+                  - '2024-02-07T12:00:00Z'
         '500':
           description: Internal server error
 components:
@@ -157,41 +126,39 @@ components:
       description: Response of the bulk evaluation
       type: array
       items:
-        properties:
-          key:
-            $ref: '#/components/schemas/key'
-          value:
-            type: object
-            description: Flag evaluation result
-          reason:
-            type: string
-            description: Reason matching OpenFeature reason
-          variant:
-            type: string
-            description: Variant of the evaluated flag value
-          metadata:
-            type: object
-            description: Arbitrary metadata supporting flag evaluation
-          errorCode:
-            type: string
-            description: OpenFeature compatible error code. See https://openfeature.dev/specification/types#error-code
-          errorDetails:
-            type: string
-            description: Optional error details description for logging or other needs
-          ETag:
-            $ref: '#/components/schemas/flagChange/properties/ETag'
+        allOf:
+          - properties:
+              key:
+                $ref: "#/components/schemas/key"
+              reason:
+                type: string
+                description: Reason matching OpenFeature reason
+              variant:
+                type: string
+                description: Variant of the evaluated flag value
+              metadata:
+                type: object
+                description: Arbitrary metadata supporting flag evaluation
+              errorCode:
+                type: string
+                description: OpenFeature compatible error code.
+                externalDocs:
+                  url: https://openfeature.dev/specification/types#error-code
+              errorDetails:
+                type: string
+                description: Optional error details description for logging or other needs
+              flagType:
+                $ref: '#/components/schemas/flagType'
+            required:
+              - key
+              - value
+          - oneOf:
+              - $ref: "#/components/schemas/booleanFlag"
+              - $ref: "#/components/schemas/stringFlag"
+              - $ref: "#/components/schemas/integerFlag"
+              - $ref: "#/components/schemas/floatFlag"
+              - $ref: "#/components/schemas/objectFlag"
     bulkEvaluationFailure:
-      description: Bulk evaluation failure response
-      properties:
-        errorCode:
-          type: string
-          description: Error code specific to the bulk evaluation.
-        errorDetails:
-          type: string
-          description: Optional error details description for logging or other needs
-      required:
-        - errorCode
-    flagChangeFailure:
       description: Bulk evaluation failure response
       properties:
         errorCode:
@@ -205,31 +172,33 @@ components:
     evaluationRequest:
       description: Flag evaluation request
       properties:
-        flagType:
-          $ref: '#/components/schemas/flagType'
         context:
           $ref: '#/components/schemas/context'
-    success:
+    evaluationSuccess:
       description: Flag evaluation success response.
-      properties:
-        key:
-          $ref: '#/components/schemas/key'
-        value:
-          type: object
-          description: Flag evaluation result
-        reason:
-          type: string
-          description: Reason matching OpenFeature reason
-        variant:
-          type: string
-          description: Variant of the evaluated flag value
-        metadata:
-          type: object
-          description: Arbitrary metadata supporting flag evaluation
-      required:
-        - key
-        - value
-    failure:
+      allOf:
+        - properties:
+            key:
+              $ref: "#/components/schemas/key"
+            reason:
+              type: string
+              description: Reason matching OpenFeature reason
+            variant:
+              type: string
+              description: Variant of the evaluated flag value
+            metadata:
+              type: object
+              description: Arbitrary metadata supporting flag evaluation
+          required:
+            - key
+            - value
+        - oneOf:
+            - $ref: "#/components/schemas/booleanFlag"
+            - $ref: "#/components/schemas/stringFlag"
+            - $ref: "#/components/schemas/integerFlag"
+            - $ref: "#/components/schemas/floatFlag"
+            - $ref: "#/components/schemas/objectFlag"
+    evaluationFailure:
       description: Flag evaluation failure response
       properties:
         key:
@@ -247,7 +216,8 @@ components:
     key:
       type: string
       description: Feature flag key
-      example: my-flag
+      examples:
+        - my-flag
     flagType:
       type: string
       enum:
@@ -262,25 +232,74 @@ components:
       description: (optional) List of flags to be evaluated, if not set all the flag available will be evaluated against the context.
       items:
         $ref: '#/components/schemas/key'
-      example:
-        - my-flag
-        - my-other-flag
+      examples:
+        - ["my-flag", "my-other-flag"]
     context:
       type: object
       description: Context information for flag evaluation
-    flagChange:
-      description: Flag changes response.
+    booleanFlag:
+      description: A boolean flag value
       properties:
-        key:
-          $ref: '#/components/schemas/key'
-        ETag:
+        type:
           type: string
-          description: identifier for a specific version of a resource. If the flag is modified the ETag should be different. It lets caches be more efficient and save bandwidth,the provider will refresh only the changed flags.
-          example: S1xXXGYIXzwhdCwKwMYUFRalIlJoJXLqbd0uYcm3sWg=
-        errorCode:
+          enum: [ boolean ]
+        value:
+          type: boolean
+          description: Flag evaluation result
+      required:
+        - type
+        - value
+    stringFlag:
+      description: A string flag value
+      properties:
+        type:
           type: string
-          enum: [FLAG_NOT_FOUND,PARSE_ERROR,GENERAL]
-          description: OpenFeature compatible error code. See https://openfeature.dev/specification/types#error-code
-        errorDetails:
+          enum: [ string ]
+        value:
           type: string
-          description: Optional error details description for logging or other needs
+          description: Flag evaluation result
+          examples:
+            - "my-flag-value"
+      required:
+        - type
+        - value
+    integerFlag:
+      description: An integer flag value
+      properties:
+        type:
+          type: string
+          enum: [ integer ]
+        value:
+          type: number
+          description: Flag evaluation result
+          examples:
+            - 3
+      required:
+        - type
+        - value
+    floatFlag:
+      description: A float flag value
+      properties:
+        type:
+          type: string
+          enum: [ float ]
+        value:
+          type: integer
+          description: Flag evaluation result
+          examples:
+            - 3.1415
+      required:
+        - type
+        - value
+    objectFlag:
+      description: An object flag value
+      properties:
+        type:
+          type: string
+          enum: [ object ]
+        value:
+          type: object
+          description: Flag evaluation result
+      required:
+        - type
+        - value
