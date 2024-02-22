@@ -147,8 +147,6 @@ components:
               errorDetails:
                 type: string
                 description: Optional error details description for logging or other needs
-              flagType:
-                $ref: '#/components/schemas/flagType'
             required:
               - key
               - value
@@ -218,15 +216,6 @@ components:
       description: Feature flag key
       examples:
         - my-flag
-    flagType:
-      type: string
-      enum:
-        - string
-        - boolean
-        - integer
-        - float
-        - object
-      description: Type to evaluate the given flag
     flags:
       type: array
       description: (optional) List of flags to be evaluated, if not set all the flag available will be evaluated against the context.
