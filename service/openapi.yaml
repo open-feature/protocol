@@ -220,7 +220,7 @@ components:
       description: An integer typed flag value
       properties:
         value:
-          type: number
+          type: integer
           description: Flag evaluation result
           examples:
             - 3
@@ -230,7 +230,7 @@ components:
       description: A float typed flag value
       properties:
         value:
-          type: integer
+          type: number
           description: Flag evaluation result
           examples:
             - 3.1415
