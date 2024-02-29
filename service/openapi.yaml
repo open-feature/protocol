@@ -119,8 +119,6 @@ components:
     bulkEvaluationRequest:
       description: Evaluate multiple flags in one request
       properties:
-        flags:
-          $ref: '#/components/schemas/flags'
         context:
           $ref: '#/components/schemas/context'
     bulkEvaluationSuccess:
@@ -195,13 +193,6 @@ components:
       description: Feature flag key
       examples:
         - my-flag
-    flags:
-      type: array
-      description: (optional) List of flags to be evaluated, if not set all the flag available will be evaluated against the context.
-      items:
-        $ref: '#/components/schemas/key'
-      examples:
-        - [ "my-flag", "my-other-flag" ]
     context:
       type: object
       description: Context information for flag evaluation
