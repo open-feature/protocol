@@ -58,6 +58,13 @@ paths:
   /ofrep/v1/evaluate/flags/:
     post:
       description: OFREP bulk evaluation request
+      parameters:
+        - in: header
+          name: If-None-Match
+          description: The request will be processed only if the eventually existing resource's ETag doesn't match any of the values listed.
+          schema:
+            type: string
+          required: false
       requestBody:
         content:
           application/json:
