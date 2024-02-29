@@ -153,9 +153,6 @@ components:
         - properties:
             key:
               $ref: "#/components/schemas/key"
-            type:
-              type: string
-              enum: [ boolean, string, integer, float, object ]
             reason:
               type: string
               description: Reason matching OpenFeature reason
@@ -171,8 +168,6 @@ components:
             - $ref: "#/components/schemas/integerFlag"
             - $ref: "#/components/schemas/floatFlag"
             - $ref: "#/components/schemas/objectFlag"
-      required:
-        - type
     evaluationFailure:
       description: Flag evaluation failure response
       properties:
