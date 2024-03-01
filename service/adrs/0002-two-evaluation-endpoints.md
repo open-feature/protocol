@@ -25,4 +25,4 @@ Individual flag evaluation is preferred for the dynamic context paradigm whereas
 
 - OFREP supports single and bulk evaluations
 - Each endpoint might evolve to better serve the specific OpenFeature paradigm
-- It might become challenging to prevent the endpoint from diverging
+- It might become challenging to prevent the endpoints from diverging
