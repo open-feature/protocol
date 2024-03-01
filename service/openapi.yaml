@@ -55,7 +55,7 @@ paths:
                   - '2024-02-07T12:00:00Z'
         '500':
           description: Internal server error
-  /ofrep/v1/evaluate/flags/:
+  /ofrep/v1/evaluate/flags:
     post:
       description: OFREP bulk evaluation request
       parameters:
