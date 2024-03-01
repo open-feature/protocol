@@ -61,7 +61,7 @@ paths:
       parameters:
         - in: header
           name: If-None-Match
-          description: The request will be processed only if the eventually existing resource's ETag doesn't match any of the values listed.
+          description: The request will be processed only if ETag doesn't match any of the values listed.
           schema:
             type: string
           required: false
@@ -82,6 +82,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/bulkEvaluationSuccess'
+        '304':
+          description: Bulk evaluation is not modified
         '400':
           description: Bad evaluation request
           content:

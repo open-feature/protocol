@@ -8,21 +8,18 @@ Accepted
 
 ## Context
 
-Evaluating flags in the static context paradigm, is often done by bulk evaluating flags and updating them if
-needed.
-E.g. a [frontend would most times load all flags](https://openfeature.dev/blog/catering-to-the-client-side) and cache
-them to prevent loading times and many requests to the feature
-flagging service.
+Evaluating flags in the static context paradigm, is often done by bulk evaluating flags and updating them if needed.
+For example, [frontend would most times load all flags](https://openfeature.dev/blog/catering-to-the-client-side). 
+And the payload is cached to prevent loading times and to avoid overloading the feature flagging service.
 
-In the dynamic context paradigm, flags are most times evaluated on demand.
-E.g. backend service often evaluates flags based on information from the specific request, so bulk evaluation is not
-possible.
+In the dynamic context paradigm, flags are usually evaluated on demand.
+For example, backend service often evaluates flags based on the information present in the specific request.
+This makes bulk evaluation less favourable for dynamic context paradigm. 
 
 ## Decision
 
 OFREP contains two endpoints, one for individual flag evaluations and the other for bulk evaluations.
-Individual flag evaluation is preferred for dynamic context paradigm whereas bulk evaluation is preferred for static
-context paradigm.
+Individual flag evaluation is preferred for the dynamic context paradigm whereas the bulk evaluation is preferred for static context paradigm.
 
 ## Consequences
 

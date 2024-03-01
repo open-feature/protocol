@@ -8,7 +8,7 @@ Accepted
 
 ## Context
 
-There can be cases where bulk evaluation evaluates and return hundreds or thousands of flags.
+There can be cases where bulk evaluation evaluates and returns hundreds or thousands of flags.
 Some feature flagging systems define filters that specify which flags should be bulk evaluated.
 
 ## Decision
