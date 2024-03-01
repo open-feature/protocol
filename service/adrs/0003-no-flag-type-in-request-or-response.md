@@ -19,7 +19,7 @@ Some include the flag type or even a schema in the response and some do not spec
 ## Decision
 
 In the community meeting on 2024-02-29, it was concluded **not** to include type details in any payload.
-The reason for this is to keep the API simple till there is a need for improvements.
+The reason for this is to keep the API simple until there is a need for improvements.
 
 Provider implementations are expected to infer the types from the JSON response.
 Given that OpenFeature evaluation supports primitive types, value conversions may focus on evaluation type and deserialized JSON value type.
