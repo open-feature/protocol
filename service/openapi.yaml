@@ -39,6 +39,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/evaluationFailure'
+        '404':
+          description: Flag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/flagNotFound'
         '401':
           description: Unauthorized - You need credentials to access the API
         '403':
@@ -55,6 +61,10 @@ paths:
                   - '2024-02-07T12:00:00Z'
         '500':
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generalErrorResponse'
   /ofrep/v1/evaluate/flags:
     post:
       description: OFREP bulk evaluation request
@@ -106,6 +116,10 @@ paths:
                   - '2024-02-07T12:00:00Z'
         '500':
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generalErrorResponse'
 components:
   securitySchemes:
     BearerAuth:
@@ -138,7 +152,7 @@ components:
       properties:
         errorCode:
           type: string
-          description: Error code specific to the bulk evaluation.
+          description: An appropriate  code specific to the bulk evaluation error. See https://openfeature.dev/specification/types#error-code
         errorDetails:
           type: string
           description: Optional error details description for logging or other needs
@@ -157,7 +171,8 @@ components:
               $ref: "#/components/schemas/key"
             reason:
               type: string
-              description: Reason matching OpenFeature reason
+              enum: [ STATIC,TARGETING_MATCH,SPLIT,DISABLED,UNKNOWN ]
+              description: An OpenFeature reason for the evaluation
             variant:
               type: string
               description: Variant of the evaluated flag value
@@ -177,14 +192,31 @@ components:
           $ref: '#/components/schemas/key'
         errorCode:
           type: string
-          enum: [ FLAG_NOT_FOUND,PARSE_ERROR,TYPE_MISMATCH,TARGETING_KEY_MISSING,INVALID_CONTEXT,GENERAL ]
+          enum: [ PARSE_ERROR,TARGETING_KEY_MISSING,INVALID_CONTEXT,GENERAL ]
           description: OpenFeature compatible error code. See https://openfeature.dev/specification/types#error-code
         errorDetails:
-          type: string
-          description: Optional error details description for logging or other needs
+          $ref: '#/components/schemas/errorDetails'
       required:
         - key
         - errorCode
+    flagNotFound:
+      description: Flag not found response
+      properties:
+        key:
+          $ref: '#/components/schemas/key'
+        errorCode:
+          type: string
+          enum: [ FLAG_NOT_FOUND ]
+        errorDetails:
+          $ref: '#/components/schemas/errorDetails'
+      required:
+        - key
+        - errorCode
+    generalErrorResponse:
+      description: A general error response from the service
+      properties:
+        errorDetails:
+          $ref: '#/components/schemas/errorDetails'
     key:
       type: string
       description: Feature flag key
@@ -239,3 +271,6 @@ components:
           description: Flag evaluation result
       required:
         - value
+    errorDetails:
+      type: string
+      description: An error description for logging or other needs
