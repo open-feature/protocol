@@ -1,0 +1,276 @@
+openapi: 3.1.0
+info:
+  version: 0.1.0
+  title: OpenFeature Remote Evaluation Protocol (OFREP)
+  description: OFREP define the protocol for remote flag evaluations
+  contact:
+    url: https://github.com/open-feature/protocol
+  license:
+    identifier: Apache-2.0
+    name: Apache 2.0
+security:
+  - ApiKeyAuth: [ ]
+  - BearerAuth: [ ]
+paths:
+  /ofrep/v1/evaluate/flags/{key}:
+    post:
+      description: OFREP single flag evaluation request
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/evaluationRequest'
+      responses:
+        '200':
+          description: OFREP successful evaluation response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/evaluationSuccess'
+        '400':
+          description: Bad evaluation request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/evaluationFailure'
+        '404':
+          description: Flag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/flagNotFound'
+        '401':
+          description: Unauthorized - You need credentials to access the API
+        '403':
+          description: Forbidden - You are not authorized to access the API
+        '429':
+          description: Rate limit reached on the Flag Management System
+          headers:
+            Retry-Later:
+              description: Indicates when to retry the request again
+              schema:
+                type: string
+                format: date-time
+                examples:
+                  - '2024-02-07T12:00:00Z'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generalErrorResponse'
+  /ofrep/v1/evaluate/flags:
+    post:
+      description: OFREP bulk evaluation request
+      parameters:
+        - in: header
+          name: If-None-Match
+          description: The request will be processed only if ETag doesn't match any of the values listed.
+          schema:
+            type: string
+          required: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bulkEvaluationRequest'
+      responses:
+        '200':
+          description: OFREP successful evaluation response
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: Entity tag used for cache validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bulkEvaluationSuccess'
+        '304':
+          description: Bulk evaluation is not modified
+        '400':
+          description: Bad evaluation request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bulkEvaluationFailure'
+        '401':
+          description: Unauthorized - You need credentials to access the API
+        '403':
+          description: Forbidden - You are not authorized to access the API
+        '429':
+          description: Rate limit reached on the Flag Management System
+          headers:
+            Retry-Later:
+              description: Indicates when to retry the request again
+              schema:
+                type: string
+                format: date-time
+                examples:
+                  - '2024-02-07T12:00:00Z'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generalErrorResponse'
+components:
+  securitySchemes:
+    BearerAuth:
+      description: (optional) Bearer Authorization to your flag management system.
+      type: http
+      scheme: bearer
+    ApiKeyAuth:
+      description: (optional) API Key to your flag management system.
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    bulkEvaluationRequest:
+      description: Evaluate multiple flags in one request
+      properties:
+        context:
+          $ref: '#/components/schemas/context'
+    bulkEvaluationSuccess:
+      description: Success response for the bulk evaluation request
+      type: object
+      properties:
+        flags:
+          type: array
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/evaluationSuccess"
+              - $ref: '#/components/schemas/evaluationFailure'
+    bulkEvaluationFailure:
+      description: Bulk evaluation failure response
+      properties:
+        errorCode:
+          type: string
+          description: An appropriate  code specific to the bulk evaluation error. See https://openfeature.dev/specification/types#error-code
+        errorDetails:
+          type: string
+          description: Optional error details description for logging or other needs
+      required:
+        - errorCode
+    evaluationRequest:
+      description: Flag evaluation request
+      properties:
+        context:
+          $ref: '#/components/schemas/context'
+    evaluationSuccess:
+      description: Flag evaluation success response.
+      allOf:
+        - properties:
+            key:
+              $ref: "#/components/schemas/key"
+            reason:
+              type: string
+              enum: [ STATIC,TARGETING_MATCH,SPLIT,DISABLED,UNKNOWN ]
+              description: An OpenFeature reason for the evaluation
+            variant:
+              type: string
+              description: Variant of the evaluated flag value
+            metadata:
+              type: object
+              description: Arbitrary metadata supporting flag evaluation
+        - oneOf:
+            - $ref: "#/components/schemas/booleanFlag"
+            - $ref: "#/components/schemas/stringFlag"
+            - $ref: "#/components/schemas/integerFlag"
+            - $ref: "#/components/schemas/floatFlag"
+            - $ref: "#/components/schemas/objectFlag"
+    evaluationFailure:
+      description: Flag evaluation failure response
+      properties:
+        key:
+          $ref: '#/components/schemas/key'
+        errorCode:
+          type: string
+          enum: [ PARSE_ERROR,TARGETING_KEY_MISSING,INVALID_CONTEXT,GENERAL ]
+          description: OpenFeature compatible error code. See https://openfeature.dev/specification/types#error-code
+        errorDetails:
+          $ref: '#/components/schemas/errorDetails'
+      required:
+        - key
+        - errorCode
+    flagNotFound:
+      description: Flag not found response
+      properties:
+        key:
+          $ref: '#/components/schemas/key'
+        errorCode:
+          type: string
+          enum: [ FLAG_NOT_FOUND ]
+        errorDetails:
+          $ref: '#/components/schemas/errorDetails'
+      required:
+        - key
+        - errorCode
+    generalErrorResponse:
+      description: A general error response from the service
+      properties:
+        errorDetails:
+          $ref: '#/components/schemas/errorDetails'
+    key:
+      type: string
+      description: Feature flag key
+      examples:
+        - my-flag
+    context:
+      type: object
+      description: Context information for flag evaluation
+    booleanFlag:
+      description: A boolean typed flag value
+      properties:
+        value:
+          type: boolean
+          description: Flag evaluation result
+      required:
+        - value
+    stringFlag:
+      description: A string typed flag value
+      properties:
+        value:
+          type: string
+          description: Flag evaluation result
+          examples:
+            - "my-flag-value"
+      required:
+        - value
+    integerFlag:
+      description: An integer typed flag value
+      properties:
+        value:
+          type: integer
+          description: Flag evaluation result
+          examples:
+            - 3
+      required:
+        - value
+    floatFlag:
+      description: A float typed flag value
+      properties:
+        value:
+          type: number
+          description: Flag evaluation result
+          examples:
+            - 3.1415
+      required:
+        - value
+    objectFlag:
+      description: An object typed flag value
+      properties:
+        value:
+          type: object
+          description: Flag evaluation result
+      required:
+        - value
+    errorDetails:
+      type: string
+      description: An error description for logging or other needs
