@@ -178,6 +178,11 @@ components:
               description: Variant of the evaluated flag value
             metadata:
               type: object
+              additionalProperties:
+                oneOf:
+                  - type: boolean
+                  - type: string
+                  - type: number
               description: Arbitrary metadata supporting flag evaluation
         - oneOf:
             - $ref: "#/components/schemas/booleanFlag"
