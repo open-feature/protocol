@@ -12,6 +12,27 @@ security:
   - ApiKeyAuth: [ ]
   - BearerAuth: [ ]
 paths:
+  /ofrep/v1/metadata:
+    get:
+      summary: OFREP metadata
+      description: OFREP metadata , it gives information about the remote flag management system, to configure the providers. This endpoint is called during the initialization of the provider.
+      responses:
+        '200':
+          description: OFREP metadata response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/metadataResponse'
+        '401':
+          description: Unauthorized - You need credentials to access the API
+        '403':
+          description: Forbidden - You are not authorized to access the API
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generalErrorResponse'
   /ofrep/v1/evaluate/flags/{key}:
     post:
       description: OFREP single flag evaluation request
@@ -279,3 +300,33 @@ components:
     errorDetails:
       type: string
       description: An error description for logging or other needs
+    metadataResponse:
+      description: OFREP metadata response
+      properties:
+        name:
+          type: string
+          description: name of the flag management system
+          examples:
+            - flagd
+            - go-feature-flag
+        features:
+          type: object
+          description: List of the features supported by the flag management system.
+          properties:
+            cacheInvalidation:
+              type: array
+              enum: [POLLING]
+              description: list of the cache invalidation mechanisme supported by the flag management system.
+              examples:
+                - [POLLING]
+        configurations:
+          type: object
+          description: Configuration of the providers specific for the flag management system.
+          properties:
+            minPollingInterval:
+              type: number
+              description: minimum polling interval (in millisecond) supported by the flag management system. The provider should ensure not to set any polling value under this minimum.
+              examples:
+                - 60000
+      required:
+        - name
