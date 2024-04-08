@@ -16,13 +16,27 @@ paths:
     get:
       summary: OFREP metadata
       description: OFREP metadata , it gives information about the remote flag management system, to configure the providers. This endpoint is called during the initialization of the provider.
+      parameters:
+        - in: header
+          name: If-None-Match
+          description: The request will be processed only if ETag doesn't match any of the values listed.
+          schema:
+            type: string
+          required: false
       responses:
         '200':
           description: OFREP metadata response
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: Entity tag used for cache validation
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/metadataResponse'
+        '304':
+          description: Flag Management System Metadata is not modified
         '401':
           description: Unauthorized - You need credentials to access the API
         '403':
