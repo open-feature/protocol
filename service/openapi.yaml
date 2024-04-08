@@ -328,19 +328,24 @@ components:
           description: List of the features supported by the flag management system.
           properties:
             cacheInvalidation:
-              type: array
-              enum: [POLLING]
-              description: list of the cache invalidation mechanisme supported by the flag management system.
-              examples:
-                - [POLLING]
-        configurations:
-          type: object
-          description: Configuration of the providers specific for the flag management system.
-          properties:
-            minPollingInterval:
-              type: number
-              description: minimum polling interval (in millisecond) supported by the flag management system. The provider should ensure not to set any polling value under this minimum.
-              examples:
-                - 60000
+              $ref: '#/components/schemas/featureCacheInvalidation'
+    featureCacheInvalidation:
+      type: object
+      description: Configuration for the cache cacheInvalidation
+      properties:
+        polling:
+          $ref: '#/components/schemas/featureCacheInvalidationPolling'
+    featureCacheInvalidationPolling:
+      type: object
+      description: Configuration of the polling for the featureCacheInvalidation
+      properties:
+        enabled:
+          type: boolean
+          description: set to true if the remote flag management system is supporting polling
+        minPollingInterval:
+          type: number
+          description: minimum polling interval (in millisecond) supported by the flag management system. The provider should ensure not to  set any polling value under this minimum.
+          examples:
+            - 60000
       required:
         - name
