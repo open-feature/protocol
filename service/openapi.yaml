@@ -344,7 +344,7 @@ components:
           description: set to true if the remote flag management system is supporting polling
         minPollingInterval:
           type: number
-          description: minimum polling interval (in millisecond) supported by the flag management system. The provider should ensure not to  set any polling value under this minimum.
+          description: minimum polling interval (in millisecond) supported by the flag management system. The provider should ensure not to set any polling value under this minimum.
           examples:
             - 60000
       required:
