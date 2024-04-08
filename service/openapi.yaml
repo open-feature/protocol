@@ -15,7 +15,7 @@ paths:
   /ofrep/v1/metadata:
     get:
       summary: OFREP metadata
-      description: OFREP metadata , it gives information about the remote flag management system, to configure the providers. This endpoint is called during the initialization of the provider.
+      description: OFREP metadata to provide information about the remote flag management system, to configure the OpenFeature SDK providers. This endpoint is called during the initialization of the provider.
       parameters:
         - in: header
           name: If-None-Match
