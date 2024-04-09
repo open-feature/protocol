@@ -12,10 +12,10 @@ security:
   - ApiKeyAuth: [ ]
   - BearerAuth: [ ]
 paths:
-  /ofrep/v1/metadata:
+  /ofrep/v1/configuration:
     get:
-      summary: OFREP metadata
-      description: OFREP metadata to provide information about the remote flag management system, to configure the OpenFeature SDK providers. This endpoint is called during the initialization of the provider.
+      summary: OFREP provider configuration
+      description: OFREP configuration to provide information about the remote flag management system, to configure the OpenFeature SDK providers. This endpoint will be called during the initialization of the provider.
       parameters:
         - in: header
           name: If-None-Match
