@@ -34,7 +34,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/configuraitonResponse'
+                $ref: '#/components/schemas/configurationResponse'
         '304':
           description: Flag Management System Metadata is not modified
         '401':
@@ -314,7 +314,7 @@ components:
     errorDetails:
       type: string
       description: An error description for logging or other needs
-    configuraitonResponse:
+    configurationResponse:
       description: OFREP metadata response
       properties:
         name:
