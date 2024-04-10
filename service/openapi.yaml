@@ -323,7 +323,7 @@ components:
           examples:
             - flagd
             - go-feature-flag
-        features:
+        capabilities:
           type: object
           description: List of the features supported by the flag management system.
           properties:
