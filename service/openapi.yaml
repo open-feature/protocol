@@ -325,7 +325,7 @@ components:
             - go-feature-flag
         capabilities:
           type: object
-          description: List of the features supported by the flag management system.
+          description: Capabilities of the flag management system and how to configure them in the provider.
           properties:
             cacheInvalidation:
               $ref: '#/components/schemas/featureCacheInvalidation'
