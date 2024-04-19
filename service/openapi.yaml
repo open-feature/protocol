@@ -12,6 +12,41 @@ security:
   - ApiKeyAuth: [ ]
   - BearerAuth: [ ]
 paths:
+  /ofrep/v1/configuration:
+    get:
+      summary: OFREP provider configuration
+      description: OFREP configuration to provide information about the remote flag management system, to configure the OpenFeature SDK providers. This endpoint will be called during the initialization of the provider.
+      parameters:
+        - in: header
+          name: If-None-Match
+          description: The request will be processed only if ETag doesn't match any of the values listed.
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: OFREP metadata response
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: Entity tag used for cache validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/configurationResponse'
+        '304':
+          description: Flag Management System Metadata is not modified
+        '401':
+          description: Unauthorized - You need credentials to access the API
+        '403':
+          description: Forbidden - You are not authorized to access the API
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generalErrorResponse'
   /ofrep/v1/evaluate/flags/{key}:
     post:
       description: OFREP single flag evaluation request
@@ -279,3 +314,38 @@ components:
     errorDetails:
       type: string
       description: An error description for logging or other needs
+    configurationResponse:
+      description: OFREP metadata response
+      properties:
+        name:
+          type: string
+          description: name of the flag management system
+          examples:
+            - flagd
+            - go-feature-flag
+        capabilities:
+          type: object
+          description: Capabilities of the flag management system and how to configure them in the provider.
+          properties:
+            cacheInvalidation:
+              $ref: '#/components/schemas/featureCacheInvalidation'
+    featureCacheInvalidation:
+      type: object
+      description: Configuration for the cache cacheInvalidation
+      properties:
+        polling:
+          $ref: '#/components/schemas/featureCacheInvalidationPolling'
+    featureCacheInvalidationPolling:
+      type: object
+      description: Configuration of the polling for the featureCacheInvalidation
+      properties:
+        enabled:
+          type: boolean
+          description: set to true if the remote flag management system is supporting polling
+        minPollingInterval:
+          type: number
+          description: minimum polling interval (in millisecond) supported by the flag management system. The provider should ensure not to set any polling value under this minimum.
+          examples:
+            - 60000
+      required:
+        - name
