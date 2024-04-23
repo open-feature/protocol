@@ -333,9 +333,10 @@ components:
               $ref: '#/components/schemas/featureEvaluation'
     featureEvaluation:
       type: object
-      description: Configuration for the cache cacheInvalidation
+      description: Configuration on how to do flag evaluation in the providers.
       properties:
         unsupportedTypes:
+          description: List of unsupported types by the flag management system, it will return an error if we call the type associated function in the OFREP providers.
           type: array
           items:
             type: string
