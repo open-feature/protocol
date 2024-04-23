@@ -329,6 +329,19 @@ components:
           properties:
             cacheInvalidation:
               $ref: '#/components/schemas/featureCacheInvalidation'
+            evaluation:
+              $ref: '#/components/schemas/featureEvaluation'
+    featureEvaluation:
+      type: object
+      description: Configuration for the cache cacheInvalidation
+      properties:
+        unsupportedTypes:
+          type: array
+          items:
+            type: string
+            enum: [int, float, string, boolean, object]
+          examples:
+            - ["object", "int", "float"]
     featureCacheInvalidation:
       type: object
       description: Configuration for the cache cacheInvalidation
