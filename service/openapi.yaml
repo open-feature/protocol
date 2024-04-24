@@ -336,7 +336,7 @@ components:
       description: Configuration on how to do flag evaluation in the providers.
       properties:
         unsupportedTypes:
-          description: List of unsupported types by the flag management system, it will return an error if we call the type associated function in the OFREP providers.
+          description: A list of unsupported types by the flag management system. Evaluating a flag of a listed type through OFREP provider will result in an error and yield the default value
           type: array
           items:
             type: string
