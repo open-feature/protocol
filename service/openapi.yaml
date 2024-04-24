@@ -329,7 +329,7 @@ components:
           properties:
             cacheInvalidation:
               $ref: '#/components/schemas/featureCacheInvalidation'
-            evaluation:
+            flagEvaluation:
               $ref: '#/components/schemas/featureEvaluation'
     featureEvaluation:
       type: object
