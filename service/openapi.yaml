@@ -329,6 +329,20 @@ components:
           properties:
             cacheInvalidation:
               $ref: '#/components/schemas/featureCacheInvalidation'
+            flagEvaluation:
+              $ref: '#/components/schemas/flagEvaluation'
+    flagEvaluation:
+      type: object
+      description: Configurations specific for flag evaluations in OFREP provider implementation
+      properties:
+        unsupportedTypes:
+          description: A list of unsupported types by the flag management system. Evaluating a flag of a listed type through OFREP provider will result in an error and yield the default value.
+          type: array
+          items:
+            type: string
+            enum: [int, float, string, boolean, object]
+          examples:
+            - ["object", "int", "float"]
     featureCacheInvalidation:
       type: object
       description: Configuration for the cache cacheInvalidation
