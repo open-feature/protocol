@@ -330,8 +330,8 @@ components:
             cacheInvalidation:
               $ref: '#/components/schemas/featureCacheInvalidation'
             flagEvaluation:
-              $ref: '#/components/schemas/featureEvaluation'
-    featureEvaluation:
+              $ref: '#/components/schemas/flagEvaluation'
+    flagEvaluation:
       type: object
       description: Configurations specific for flag evaluations in OFREP provider implementation
       properties:
