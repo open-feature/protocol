@@ -1,0 +1,23 @@
+name: "OpenAPI Lint"
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - synchronize
+
+permissions:
+  contents: read
+
+jobs:
+  openAPILint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: OpenAPI Lint Checks
+        uses: nwestfall/openapi-action@v1.0.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          file: services/openapi.yaml
