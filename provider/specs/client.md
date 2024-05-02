@@ -41,7 +41,7 @@ When calling an evaluation function the provider should check if the associated 
   - If the cached evaluation is in success you should return the evaluation response.
 
 ## Polling
-The polling system will make a POST request periodically tp the `/ofrep/v1/evaluate/flags` endpoint to check if there is a change in the flags evaluation to be able to store it.
+The polling system will make a POST request periodically to the `/ofrep/v1/evaluate/flags` endpoint to check if there is a change in the flags evaluation to be able to store it.
 
 If an `ETag` is available we should always add the header `If-None-Match` with the `ETag` value.
 - If the cache is still up-to-date we will receive a `304` telling us that the nothing has changed on the flag management system side.
