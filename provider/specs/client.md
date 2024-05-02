@@ -60,7 +60,7 @@ The endpoint will return a list of configurations for the provider:
 In this section we will describe each capability and describe their default value and usage.
 
 #### Cache Invalidation
-The capability `cacheInvalidation` describe how the mechanism of cache invalidation is working.
+The capability `cacheInvalidation` describes how the mechanism of cache invalidation works.
 
 ##### Polling
 `polling`: define how the provider should do the polling
