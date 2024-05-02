@@ -26,7 +26,7 @@ The `initialize()` function should follow those steps:
 1. Make a GET request to the `/ofrep/v1/configuration` endpoint to retrieve the configurations return by the flag management system and store them in memory to be available for all the function of the provider. *(See [Annexe 1](#annexe-1) for the description of the endpoint response)*
 2. Make a POST request to the `/ofrep/v1/evaluate/flags` endpoint with the evaluation context in the body.  
    - If the endpoint returns an error, the `initialize()` function must error and exit.  
-   - If the endpoint is in success, we should store in a local cache all the flags evaluation result returned by the API in a local cache. We should also store the `ETag` header in the provider to be able to send it back later.
+   - If the request is successful, we should store in a local cache all of the flags evaluation results returned by the API in a local cache. We should also store the `ETag` header in the provider to be able to send it back later.
 3. If polling is enabled, the function should start the polling loop *(See [polling section](#polling))*.
 
 ## Evaluation
