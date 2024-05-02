@@ -2,7 +2,7 @@
 
 OpenFeature Remote Evaluation Protocol (OFREP) is an API specification for feature flagging that allows the use of generic providers to connect to any feature flag management systems that supports the protocol.
 
-In this specification we will specify how to write a OFREP provider using the [static-context-paradigm](https://openfeature.dev/specification/glossary/#static-context-paradigm) that is used on client side applications typically operate in the context of a single user. 
+In this specification we will specify how to write an OFREP provider using the [static-context-paradigm](https://openfeature.dev/specification/glossary/#static-context-paradigm) that is used on client side applications typically operate in the context of a single user. 
 We will keep the specification language agnostic.
 
 **Pre-requisite:**
