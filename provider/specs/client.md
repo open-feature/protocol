@@ -52,7 +52,7 @@ If we have a `ETag` available we should always add the header `If-None-Match` wi
 
 ## Annexe 1
 **`/ofrep/v1/configuration` description:**
-The endpoint will return a list of configuration for the provider:
+The endpoint will return a list of configurations for the provider:
 - `name`: Name of the flag management system, it should be used in the `metadata.name` name (ex: `OFREP Web Provider ${metadata.name}`).
 - `capabilities`: List of capabilities of the flag management system and their associated configuration. *Check the [capabilities section](#capabilities) for the details of each capability.*
 
