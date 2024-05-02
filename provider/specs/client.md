@@ -2,7 +2,7 @@
 
 OpenFeature Remote Evaluation Protocol (OFREP) is an API specification for feature flagging that allows the use of generic providers to connect to any feature flag management systems that supports the protocol.
 
-In this specification we will specify how to write an OFREP provider using the [static-context-paradigm](https://openfeature.dev/specification/glossary/#static-context-paradigm) that is used on client side applications typically operate in the context of a single user. 
+In this document, we will specify how to write an OFREP provider using the [static-context-paradigm](https://openfeature.dev/specification/glossary/#static-context-paradigm) that is used on client side applications typically operate in the context of a single user. 
 We will keep the specification language agnostic.
 
 **Pre-requisite:**
@@ -40,8 +40,21 @@ When calling an evaluation function the provider should check if the associated 
   - If the value retrieve from the cache has a different type than the one expected you should return a TypeMismatch error.
   - If the cached evaluation is in success you should return the evaluation response.
 
+```mermaid
+flowchart TD
+    A[evaluation\nfunction] --> B{Is function type in\nunsupportedTypes?}
+    B --> |YES| C(return an error)
+    B --> |NO| D{Is flag key stored\nin local cache?}
+    D --> |NO| E(return a FlagNotFound error)
+    D --> |YES| F{Is cached evaluation\nresponse in error?} 
+    F --> |YES| G(Map the error as a\nprovider error and return)
+    F --> |NO| H{Is the flag value the\nsame type as the\nevaluation function?}
+    H --> |YES| I(return the evaluation response)
+    H --> |NO| J(return a TypeMismatch error)
+```
+
 ## Polling
-The polling system will make a POST request periodically to the `/ofrep/v1/evaluate/flags` endpoint to check if there is a change in the flags evaluation to be able to store it.
+The polling system will make a POST request periodically tp the `/ofrep/v1/evaluate/flags` endpoint to check if there is a change in the flags evaluation to be able to store it.
 
 If an `ETag` is available we should always add the header `If-None-Match` with the `ETag` value.
 - If the cache is still up-to-date we will receive a `304` telling us that the nothing has changed on the flag management system side.
@@ -69,12 +82,12 @@ The capability `cacheInvalidation` describes how the mechanism of cache invalida
 - `minPollingInterval`: define the minimum polling interval acceptable by the flag management system. If for any reason the `pollInteral` provided in the constructor is lower than this `minPollingInterval` we should default on this value.
 
 If the key `polling` is not available, the provider should use those default values:
-```json
-{
-    "enabled": true,
-    "minPollingInterval": 0 
-}
-```
+
+| key                  | default value |
+| -------------------- | ------------- |
+| `enabled`            | `true`        |
+| `minPollingInterval` | 60000         |
+
 
 #### Flag Evaluation
 `flagEvaluation`: define how to manage flag evaluation in the provider.
