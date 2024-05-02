@@ -12,7 +12,7 @@ We will keep the specification language agnostic.
 
 
 ## Constructor
-An implementation of a OFREP client provider should allow in the creation of the provider to take as options:
+An implementation of an OFREP client provider should allow in the creation of the provider to take as options:
 - `baseURL`: The base URL of the [flag management system](https://openfeature.dev/specification/glossary#flag-management-system). This should be the base of the URL pointing before the `/ofrep` namespace of the API.
 - `headers`: The headers to use when calling the OFREP endpoints *(ex:`Authorization`, Custom headers, etc ...)*.
 - `pollInteral`: The polling interval defining when to call again the flag management system.
