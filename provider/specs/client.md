@@ -57,7 +57,7 @@ The endpoint will return a list of configurations for the provider:
 - `capabilities`: List of capabilities of the flag management system and their associated configuration. *Check the [capabilities section](#capabilities) for the details of each capability.*
 
 ### Capabilities
-In this section we will describe each capabilities and describe their default value and usage.
+In this section we will describe each capability and describe their default value and usage.
 
 #### Cache Invalidation
 The capability `cacheInvalidation` describe how the mechanism of cache invalidation is working.
