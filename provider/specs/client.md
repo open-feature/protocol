@@ -77,6 +77,6 @@ If the key `polling` is not available, the provider should use those default val
 ```
 
 #### Flag Evaluation
-`flagEvaluation`: define the how to managed flag evaluation in the provider.
+`flagEvaluation`: define how to manage flag evaluation in the provider.
 - `unsupportedTypes`: Some flag management system are not supporting all types. This array should contains all the types not supported by the flag management system.Acceptable values are `int`, `float`,`string`, `boolean`,`object`.  
   Default value: `[]`
