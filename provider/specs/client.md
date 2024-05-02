@@ -43,7 +43,7 @@ When calling an evaluation function the provider should check if the associated 
 ## Polling
 The polling system will make a POST request periodically tp the `/ofrep/v1/evaluate/flags` endpoint to check if there is a change in the flags evaluation to be able to store it.
 
-If we have a `ETag` available we should always add the header `If-None-Match` with the `ETag` value.
+If an `ETag` is available we should always add the header `If-None-Match` with the `ETag` value.
 - If the cache is still up-to-date we will receive a `304` telling us that the nothing has changed on the flag management system side.
 - If the cache is outdated we will receive a `200` with the new values of all the flags. In that situation we should:
   1. Replace the actual local cache of flags evaluations.
