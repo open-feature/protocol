@@ -17,7 +17,7 @@ An implementation of an OFREP client provider should allow in the creation of th
 - `headers`: The headers to use when calling the OFREP endpoints *(ex:`Authorization`, Custom headers, etc ...)*.
 - `pollInteral`: The polling interval defining when to call again the flag management system.
 
-In the constructor the provider should check if the `baseURL` is a valid URL and return an error if the URL is invalid.
+In the constructor, the provider should check if the `baseURL` is a valid URL and return an error if the URL is invalid.
 
 ## Initialize the provider
 An implementation of a OFREP client provider should start with an initialization of the provider.
