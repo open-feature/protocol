@@ -30,7 +30,7 @@ The `initialize()` function should follow those steps:
 3. If polling is enabled, the function should start the polling loop *(See [polling section](#polling))*.
 
 ## Evaluation
-The evaluation should not do any remote API calls.
+The evaluation should not perform any remote API calls.
 
 When calling an evaluation function the provider should check if the associated type is supported, by checking the key `capabilities.flagEvaluation.unsupportedTypes` from the configuration endpoint.
 - If the type is unsupported, we should exit early and directly return an error.
