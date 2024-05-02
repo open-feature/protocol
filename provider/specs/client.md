@@ -20,7 +20,7 @@ An implementation of an OFREP client provider should allow in the creation of th
 In the constructor, the provider should check if the `baseURL` is a valid URL and return an error if the URL is invalid.
 
 ## Initialize the provider
-An implementation of a OFREP client provider should start with an initialization of the provider.
+An implementation of an OFREP client provider should start with an initialization of the provider.
 
 The `initialize()` function should follow those steps:
 1. Make a GET request to the `/ofrep/v1/configuration` endpoint to retrieve the configurations return by the flag management system and store them in memory to be available for all the function of the provider. *(See [Annexe 1](#annexe-1) for the description of the endpoint response)*
