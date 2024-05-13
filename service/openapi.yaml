@@ -1,4 +1,6 @@
 openapi: 3.1.0
+servers:
+  - url: /
 info:
   version: 0.1.0
   title: OpenFeature Remote Evaluation Protocol (OFREP)
@@ -49,6 +51,7 @@ paths:
                 $ref: '#/components/schemas/generalErrorResponse'
   /ofrep/v1/evaluate/flags/{key}:
     post:
+      summary: OFREP single flag evaluation contract
       description: OFREP single flag evaluation request
       parameters:
         - name: key
@@ -102,6 +105,7 @@ paths:
                 $ref: '#/components/schemas/generalErrorResponse'
   /ofrep/v1/evaluate/flags:
     post:
+      summary: OFREP bulk flag evaluation contract
       description: OFREP bulk evaluation request
       parameters:
         - in: header
