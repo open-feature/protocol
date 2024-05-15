@@ -48,7 +48,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/evaluationSuccess'
+                $ref: '#/components/schemas/serverEvaluationSuccess'
         '400':
           description: Bad evaluation request
           content:
@@ -221,6 +221,13 @@ components:
       properties:
         context:
           $ref: '#/components/schemas/context'
+    serverEvaluationSuccess:
+      allOf:
+        - $ref: "#/components/schemas/evaluationSuccess"
+        - properties:
+            cacheable:
+              type: boolean
+              description: Let the provider know that this flag evaluation can be cached
     evaluationSuccess:
       description: Flag evaluation success response.
       allOf:
@@ -354,6 +361,8 @@ components:
               $ref: '#/components/schemas/featureCacheInvalidation'
             flagEvaluation:
               $ref: '#/components/schemas/flagEvaluation'
+            caching:
+              $ref: '#/components/schemas/featureCaching'
     flagEvaluation:
       type: object
       description: Configurations specific for flag evaluations in OFREP provider implementation
@@ -391,3 +400,15 @@ components:
             - 60000
       required:
         - name
+    featureCaching:
+      type: object
+      description: Configuration of the caching mechanism in the provider (used by server providers)
+      properties:
+        enabled:
+          type: boolean
+          description: set to true if you want the provider to cache the evaluation results
+        ttl:
+          type: number
+          examples:
+            - 1000
+          description: number (in millisecond) to wait before invalidating the cache. If we have cacheInvalidation enabled, the cache can also be evicted if a configuration change happen.
