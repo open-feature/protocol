@@ -27,7 +27,7 @@ The `initialize()` function should follow those steps:
 2. Make a POST request to the `/ofrep/v1/evaluate/flags` endpoint with the evaluation context in the body.  
    - If the endpoint returns an error, the `initialize()` function must error and exit.  
    - If the request is successful, we should store in a local cache all of the flags evaluation results returned by the API in a local cache. We should also store the `ETag` header in the provider to be able to send it back later.
-3. If polling is enabled, the function should start the polling loop *(See [polling section](#polling))*.
+3. If polling is enabled, the polling loop should start now *(See [polling section](#polling))*.
 
 ## Evaluation
 The evaluation should not perform any remote API calls.
