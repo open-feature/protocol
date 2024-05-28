@@ -335,18 +335,21 @@ components:
               $ref: '#/components/schemas/featureCacheInvalidation'
             flagEvaluation:
               $ref: '#/components/schemas/flagEvaluation'
+      required:
+        - name
     flagEvaluation:
       type: object
       description: Configurations specific for flag evaluations in OFREP provider implementation
       properties:
-        unsupportedTypes:
-          description: A list of unsupported types by the flag management system. Evaluating a flag of a listed type through OFREP provider will result in an error and yield the default value.
+        supportedTypes:
+          description: |
+            A list of supported types by the flag management system.
+            Evaluating a flag of an unlisted type through OFREP provider will result in an error and yield the default value.
           type: array
           items:
             type: string
-            enum: [int, float, string, boolean, object]
           examples:
-            - ["object", "int", "float"]
+            - [ boolean, integer, decimal, string, object ]
     featureCacheInvalidation:
       type: object
       description: Configuration for the cache cacheInvalidation
@@ -365,5 +368,3 @@ components:
           description: minimum polling interval (in millisecond) supported by the flag management system. The provider should ensure not to set any polling value under this minimum.
           examples:
             - 60000
-      required:
-        - name
