@@ -321,12 +321,6 @@ components:
     configurationResponse:
       description: OFREP metadata response
       properties:
-        name:
-          type: string
-          description: name of the flag management system
-          examples:
-            - flagd
-            - go-feature-flag
         capabilities:
           type: object
           description: Capabilities of the flag management system and how to configure them in the provider.
@@ -365,5 +359,3 @@ components:
           description: minimum polling interval (in millisecond) supported by the flag management system. The provider should ensure not to set any polling value under this minimum.
           examples:
             - 60000
-      required:
-        - name
