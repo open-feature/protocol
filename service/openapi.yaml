@@ -210,7 +210,7 @@ components:
               $ref: "#/components/schemas/key"
             reason:
               type: string
-              enum: [ STATIC,TARGETING_MATCH,SPLIT,DISABLED,UNKNOWN ]
+              examples: [ STATIC,TARGETING_MATCH,SPLIT,DISABLED,UNKNOWN ]
               description: An OpenFeature reason for the evaluation
             variant:
               type: string
