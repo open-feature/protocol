@@ -13,6 +13,21 @@ info:
 security:
   - ApiKeyAuth: [ ]
   - BearerAuth: [ ]
+tags:
+  - name: OFREP core
+    description: |
+      Core APIs to implement to support OFREP.  
+      **Required**  
+      
+      *This is the minimum set of APIs required for a flag management system to be OFREP compatible.*
+      
+  - name: OFREP extensions
+    description: |
+      Extension APIs to provide full support for OFREP.  
+      **Optional**  
+
+      *These APIs are utilized by the providers to enhance the OFREP experience.*
+      
 paths:
   /ofrep/v1/evaluate/flags/{key}:
     post:
@@ -77,7 +92,7 @@ paths:
       summary: OFREP bulk flag evaluation contract
       description: |
         OFREP bulk evaluation request.  
-        The endpoint is called by the client providers to perform bulk flag evaluation.
+        The endpoint is called by the client providers to perform single flag evaluation.
       parameters:
         - in: header
           name: If-None-Match
