@@ -77,7 +77,7 @@ paths:
       summary: OFREP bulk flag evaluation contract
       description: |
         OFREP bulk evaluation request.  
-        The endpoint is called by the client providers to perform single flag evaluation.
+        The endpoint is called by the client providers to perform bulk flag evaluation.
       parameters:
         - in: header
           name: If-None-Match
