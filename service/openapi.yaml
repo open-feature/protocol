@@ -13,46 +13,24 @@ info:
 security:
   - ApiKeyAuth: [ ]
   - BearerAuth: [ ]
+tags:
+  - name: OFREP Core
+    description: |
+      **Required**: Core APIs to implement to support OFREP.  
+      *This is the minimum set of APIs required for a flag management system to be OFREP compatible.*
+  - name: OFREP Extensions
+    description: |
+      **Optional**: Extension APIs to provide full support for OFREP.  
+      *These APIs are utilized by the providers to enhance the OFREP experience.*
+      
 paths:
-  /ofrep/v1/configuration:
-    get:
-      summary: OFREP provider configuration
-      description: OFREP configuration to provide information about the remote flag management system, to configure the OpenFeature SDK providers. This endpoint will be called during the initialization of the provider.
-      parameters:
-        - in: header
-          name: If-None-Match
-          description: The request will be processed only if ETag doesn't match any of the values listed.
-          schema:
-            type: string
-          required: false
-      responses:
-        '200':
-          description: OFREP metadata response
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: Entity tag used for cache validation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/configurationResponse'
-        '304':
-          description: Flag Management System Metadata is not modified
-        '401':
-          description: Unauthorized - You need credentials to access the API
-        '403':
-          description: Forbidden - You are not authorized to access the API
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/generalErrorResponse'
   /ofrep/v1/evaluate/flags/{key}:
     post:
+      tags: [OFREP core]
       summary: OFREP single flag evaluation contract
-      description: OFREP single flag evaluation request
+      description: |
+        OFREP single flag evaluation request.  
+        The endpoint is called by the server providers to perform single flag evaluation.
       parameters:
         - name: key
           in: path
@@ -105,8 +83,11 @@ paths:
                 $ref: '#/components/schemas/generalErrorResponse'
   /ofrep/v1/evaluate/flags:
     post:
+      tags: [OFREP core]
       summary: OFREP bulk flag evaluation contract
-      description: OFREP bulk evaluation request
+      description: |
+        OFREP bulk evaluation request.  
+        The endpoint is called by the client providers to perform single flag evaluation.
       parameters:
         - in: header
           name: If-None-Match
@@ -153,6 +134,44 @@ paths:
                 format: date-time
                 examples:
                   - '2024-02-07T12:00:00Z'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generalErrorResponse'
+  /ofrep/v1/configuration:
+    get:
+      tags: [OFREP extensions]
+      summary: OFREP provider configuration
+      description: |
+        OFREP configuration is used to supply information about the remote flag management system and to set up the OpenFeature SDK providers.  
+        The providers will contact this endpoint only if the client has opted in.
+      parameters:
+        - in: header
+          name: If-None-Match
+          description: The request will be processed only if ETag doesn't match any of the values listed.
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: OFREP metadata response
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: Entity tag used for cache validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/configurationResponse'
+        '304':
+          description: Flag Management System Metadata is not modified
+        '401':
+          description: Unauthorized - You need credentials to access the API
+        '403':
+          description: Forbidden - You are not authorized to access the API
         '500':
           description: Internal server error
           content:
