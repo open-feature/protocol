@@ -360,7 +360,7 @@ components:
         enabled:
           type: boolean
           description: set to true if the remote flag management system is supporting polling
-        minPollingIntervalInMs:
+        minPollingIntervalMs:
           type: number
           description: |
             Minimum polling interval (in millisecond) supported by the flag management system.  
