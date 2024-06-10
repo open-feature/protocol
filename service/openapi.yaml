@@ -341,8 +341,8 @@ components:
       properties:
         supportedTypes:
           description: |
-            A list of supported types by the flag management system.  
-            Evaluating a flag of a listed type through OFREP provider will result in an error and yield the default value. Undefined means that the flag management system is supporting all types.
+            Evaluating a flag of unlisted type through the OFREP provider will result in an error and yield the default value.
+            However, when supportedTypes is undefined/empty, provider assumes that all flag evaluation types are supported by the flag management system
           type: array
           items:
             type: string
