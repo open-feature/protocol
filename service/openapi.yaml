@@ -14,18 +14,13 @@ security:
   - ApiKeyAuth: [ ]
   - BearerAuth: [ ]
 tags:
-  - name: OFREP core
+  - name: OFREP Core
     description: |
-      Core APIs to implement to support OFREP.  
-      **Required**  
-      
+      **Required**: Core APIs to implement to support OFREP.  
       *This is the minimum set of APIs required for a flag management system to be OFREP compatible.*
-      
-  - name: OFREP extensions
+  - name: OFREP Extensions
     description: |
-      Extension APIs to provide full support for OFREP.  
-      **Optional**  
-
+      **Optional**: Extension APIs to provide full support for OFREP.  
       *These APIs are utilized by the providers to enhance the OFREP experience.*
       
 paths:
