@@ -358,14 +358,17 @@ components:
       type: object
       description: Configurations specific for flag evaluations in OFREP provider implementation
       properties:
-        unsupportedTypes:
-          description: A list of unsupported types by the flag management system. Evaluating a flag of a listed type through OFREP provider will result in an error and yield the default value.
+        supportedTypes:
+          description: |
+            Evaluating a flag of unlisted type through the OFREP provider will result in an error and yield the default value.
+            However, when supportedTypes is undefined/empty, provider assumes that all flag evaluation types are supported by the flag management system
           type: array
           items:
             type: string
             enum: [int, float, string, boolean, object]
           examples:
             - ["object", "int", "float"]
+            - null
     featureCacheInvalidation:
       type: object
       description: Configuration for the cache cacheInvalidation
