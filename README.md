@@ -43,6 +43,12 @@ We value the following:
   - low latency of flag evaluations
   - portability and interoperability between runtimes and languages (should be usable in web, mobile devices, and server)
   - minimum reliance on dependencies (leverage ubiquitous, native transports and encodings where possible)
+
+## Providers
+- [GO](https://github.com/open-feature/go-sdk-contrib/tree/main/providers/ofrep)
+- [JS Server](https://github.com/open-feature/js-sdk-contrib/tree/main/libs/providers/ofrep)
+- [JS Web](https://github.com/open-feature/js-sdk-contrib/tree/main/libs/providers/ofrep-web)
  
 ## Contribution
 If you are interested about the OpenFeature Remote Evaluation Protocol you can join the [`#openfeature-remote-evaluation-protocol`](https://cloud-native.slack.com/archives/C066A48LK35) slack channel on the [CNCF Slack](https://communityinviter.com/apps/cloud-native/cncf).
+
