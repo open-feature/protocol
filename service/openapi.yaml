@@ -198,6 +198,8 @@ components:
     bulkEvaluationSuccess:
       description: Success response for the bulk evaluation request
       type: object
+      required:
+        - flags
       properties:
         flags:
           type: array
