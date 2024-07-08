@@ -68,7 +68,7 @@ paths:
         '429':
           description: Rate limit reached on the Flag Management System
           headers:
-            Retry-Later:
+            Retry-After:
               description: Indicates when to retry the request again
               schema:
                 type: string
@@ -198,6 +198,8 @@ components:
     bulkEvaluationSuccess:
       description: Success response for the bulk evaluation request
       type: object
+      required:
+        - flags
       properties:
         flags:
           type: array
