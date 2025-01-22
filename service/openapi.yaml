@@ -201,6 +201,8 @@ components:
       required:
         - flags
       properties:
+        metadata:
+          $ref: "#/components/schemas/metadata"
         flags:
           type: array
           items:
@@ -244,13 +246,7 @@ components:
               type: string
               description: Variant of the evaluated flag value
             metadata:
-              type: object
-              additionalProperties:
-                oneOf:
-                  - type: boolean
-                  - type: string
-                  - type: number
-              description: Arbitrary metadata supporting flag evaluation
+              $ref: "#/components/schemas/metadata"
         - oneOf:
             - $ref: "#/components/schemas/booleanFlag"
             - $ref: "#/components/schemas/stringFlag"
@@ -268,6 +264,8 @@ components:
           description: OpenFeature compatible error code. See https://openfeature.dev/specification/types#error-code
         errorDetails:
           $ref: '#/components/schemas/errorDetails'
+        metadata:
+          $ref: "#/components/schemas/metadata"
       required:
         - key
         - errorCode
@@ -281,6 +279,8 @@ components:
           enum: [ FLAG_NOT_FOUND ]
         errorDetails:
           $ref: '#/components/schemas/errorDetails'
+        metadata:
+          $ref: "#/components/schemas/metadata"
       required:
         - key
         - errorCode
@@ -421,3 +421,15 @@ components:
           examples:
             - 1000
           description: number (in millisecond) to wait before invalidating the cache. If we have cacheInvalidation enabled, the cache can also be evicted if a configuration change happen.
+    metadata: 
+      type: object
+      additionalProperties:
+        oneOf:
+          - type: boolean
+          - type: string
+          - type: number
+      examples:
+        - flagSetId: holidays-sales
+          version: v12
+          team: ecommerce
+      description: Arbitrary metadata for the flag or flag set, useful for telemetry and documentary purposes.
