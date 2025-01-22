@@ -29,7 +29,7 @@ paths:
       tags: [OFREP core]
       summary: OFREP single flag evaluation contract
       description: |
-        OFREP single flag evaluation request.  
+        OFREP single flag evaluation request.
         The endpoint is called by the server providers to perform single flag evaluation.
       parameters:
         - name: key
@@ -86,8 +86,8 @@ paths:
       tags: [OFREP core]
       summary: OFREP bulk flag evaluation contract
       description: |
-        OFREP bulk evaluation request.  
-        The endpoint is called by the client providers to perform single flag evaluation.
+        OFREP bulk evaluation request.
+        The endpoint is called by the client providers to evaluate all flags at once.
       parameters:
         - in: header
           name: If-None-Match
@@ -127,7 +127,7 @@ paths:
         '429':
           description: Rate limit reached on the Flag Management System
           headers:
-            Retry-Later:
+            Retry-After:
               description: Indicates when to retry the request again
               schema:
                 type: string
@@ -145,7 +145,7 @@ paths:
       tags: [OFREP extensions]
       summary: OFREP provider configuration
       description: |
-        OFREP configuration is used to supply information about the remote flag management system and to set up the OpenFeature SDK providers.  
+        OFREP configuration is used to supply information about the remote flag management system and to set up the OpenFeature SDK providers.
         The providers will contact this endpoint only if the client has opted in.
       parameters:
         - in: header
@@ -297,6 +297,13 @@ components:
     context:
       type: object
       description: Context information for flag evaluation
+      properties:
+        targetingKey:
+          type: string
+          description: A string logically identifying the subject of evaluation (end-user, service, etc).
+          examples:
+            - user-123
+      additionalProperties: true
     booleanFlag:
       description: A boolean typed flag value
       properties:
