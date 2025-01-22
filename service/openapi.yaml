@@ -201,14 +201,18 @@ components:
       required:
         - flags
       properties:
-        metadata:
-          $ref: "#/components/schemas/metadata"
         flags:
           type: array
           items:
             oneOf:
               - $ref: "#/components/schemas/evaluationSuccess"
               - $ref: '#/components/schemas/evaluationFailure'
+        metadata:
+          $ref: "#/components/schemas/metadata"
+          description: Arbitrary metadata for the flag set, useful for telemetry and documentary purposes.
+          examples:
+            - flagSetId: holidaySales
+              version: v12
     bulkEvaluationFailure:
       description: Bulk evaluation failure response
       properties:
@@ -246,7 +250,10 @@ components:
               type: string
               description: Variant of the evaluated flag value
             metadata:
-              $ref: "#/components/schemas/metadata"
+              allOf:
+                - $ref: "#/components/schemas/metadata"
+                - $ref: "#/components/schemas/flagMetadataDescription"
+                - $ref: "#/components/schemas/flagMetadataExamples"
         - oneOf:
             - $ref: "#/components/schemas/booleanFlag"
             - $ref: "#/components/schemas/stringFlag"
@@ -265,7 +272,10 @@ components:
         errorDetails:
           $ref: '#/components/schemas/errorDetails'
         metadata:
-          $ref: "#/components/schemas/metadata"
+          allOf:
+            - $ref: "#/components/schemas/metadata"
+            - $ref: "#/components/schemas/flagMetadataDescription"
+            - $ref: "#/components/schemas/flagMetadataExamples"
       required:
         - key
         - errorCode
@@ -280,7 +290,10 @@ components:
         errorDetails:
           $ref: '#/components/schemas/errorDetails'
         metadata:
-          $ref: "#/components/schemas/metadata"
+          allOf:
+            - $ref: "#/components/schemas/metadata"
+            - $ref: "#/components/schemas/flagMetadataDescription"
+            - $ref: "#/components/schemas/flagMetadataExamples"
       required:
         - key
         - errorCode
@@ -428,8 +441,10 @@ components:
           - type: boolean
           - type: string
           - type: number
+    flagMetadataExamples:
       examples:
-        - flagSetId: holidays-sales
-          version: v12
-          team: ecommerce
-      description: Arbitrary metadata for the flag or flag set, useful for telemetry and documentary purposes.
+        - team: ecommerce
+          businessPurpose: experiment 
+    flagMetadataDescription:
+      description: Arbitrary metadata for the flag, useful for telemetry and documentary purposes.
+
