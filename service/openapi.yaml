@@ -207,6 +207,12 @@ components:
             oneOf:
               - $ref: "#/components/schemas/evaluationSuccess"
               - $ref: '#/components/schemas/evaluationFailure'
+        metadata:
+          $ref: "#/components/schemas/metadata"
+          description: Arbitrary metadata for the flag set, useful for telemetry and documentary purposes.
+          examples:
+            - flagSetId: holidaySales
+              version: v12
     bulkEvaluationFailure:
       description: Bulk evaluation failure response
       properties:
@@ -244,13 +250,10 @@ components:
               type: string
               description: Variant of the evaluated flag value
             metadata:
-              type: object
-              additionalProperties:
-                oneOf:
-                  - type: boolean
-                  - type: string
-                  - type: number
-              description: Arbitrary metadata supporting flag evaluation
+              allOf:
+                - $ref: "#/components/schemas/metadata"
+                - $ref: "#/components/schemas/flagMetadataDescription"
+                - $ref: "#/components/schemas/flagMetadataExamples"
         - oneOf:
             - $ref: "#/components/schemas/booleanFlag"
             - $ref: "#/components/schemas/stringFlag"
@@ -268,6 +271,11 @@ components:
           description: OpenFeature compatible error code. See https://openfeature.dev/specification/types#error-code
         errorDetails:
           $ref: '#/components/schemas/errorDetails'
+        metadata:
+          allOf:
+            - $ref: "#/components/schemas/metadata"
+            - $ref: "#/components/schemas/flagMetadataDescription"
+            - $ref: "#/components/schemas/flagMetadataExamples"
       required:
         - key
         - errorCode
@@ -281,6 +289,11 @@ components:
           enum: [ FLAG_NOT_FOUND ]
         errorDetails:
           $ref: '#/components/schemas/errorDetails'
+        metadata:
+          allOf:
+            - $ref: "#/components/schemas/metadata"
+            - $ref: "#/components/schemas/flagMetadataDescription"
+            - $ref: "#/components/schemas/flagMetadataExamples"
       required:
         - key
         - errorCode
@@ -421,3 +434,17 @@ components:
           examples:
             - 1000
           description: number (in millisecond) to wait before invalidating the cache. If we have cacheInvalidation enabled, the cache can also be evicted if a configuration change happen.
+    metadata: 
+      type: object
+      additionalProperties:
+        oneOf:
+          - type: boolean
+          - type: string
+          - type: number
+    flagMetadataExamples:
+      examples:
+        - team: ecommerce
+          businessPurpose: experiment 
+    flagMetadataDescription:
+      description: Arbitrary metadata for the flag, useful for telemetry and documentary purposes.
+
