@@ -28,10 +28,9 @@ paths:
     post:
       tags: [OFREP Core]
       summary: OFREP single flag evaluation contract
-      description: |
+      descriptions: |
         OFREP single flag evaluation request.
         The endpoint is called by the server providers to perform single flag evaluation.
-      operationId: evaluateFlag
       parameters:
         - name: key
           in: path
