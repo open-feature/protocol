@@ -26,11 +26,12 @@ tags:
 paths:
   /ofrep/v1/evaluate/flags/{key}:
     post:
-      tags: [OFREP core]
+      tags: [OFREP Core]
       summary: OFREP single flag evaluation contract
       description: |
         OFREP single flag evaluation request.
         The endpoint is called by the server providers to perform single flag evaluation.
+      operationId: evaluateFlag
       parameters:
         - name: key
           in: path
@@ -83,11 +84,12 @@ paths:
                 $ref: '#/components/schemas/generalErrorResponse'
   /ofrep/v1/evaluate/flags:
     post:
-      tags: [OFREP core]
+      tags: [OFREP Core]
       summary: OFREP bulk flag evaluation contract
       description: |
         OFREP bulk evaluation request.
         The endpoint is called by the client providers to evaluate all flags at once.
+      operationId: evaluateFlagsBulk
       parameters:
         - in: header
           name: If-None-Match
@@ -142,11 +144,12 @@ paths:
                 $ref: '#/components/schemas/generalErrorResponse'
   /ofrep/v1/configuration:
     get:
-      tags: [OFREP extensions]
+      tags: [OFREP Extensions]
       summary: OFREP provider configuration
       description: |
         OFREP configuration is used to supply information about the remote flag management system and to set up the OpenFeature SDK providers.
         The providers will contact this endpoint only if the client has opted in.
+      operationId: getConfiguration
       parameters:
         - in: header
           name: If-None-Match
@@ -420,8 +423,6 @@ components:
             The provider should ensure not to set any polling value under this minimum.
           examples:
             - 60000
-      required:
-        - name
     featureCaching:
       type: object
       description: Configuration of the caching mechanism in the provider (used by server providers)
