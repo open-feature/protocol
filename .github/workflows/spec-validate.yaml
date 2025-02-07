@@ -15,6 +15,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run OpenAPI spec validation
-        run: |
-          docker run --rm -v $PWD:/spec redocly/cli lint ./service/openapi.yaml
-          echo "{exit_code}={$?}" >> $GITHUB_STATE
+      - uses: stoplightio/spectral-action@v0.8.11
+        with:
+          file_glob: 'service/openapi.yaml'
