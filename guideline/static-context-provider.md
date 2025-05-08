@@ -10,86 +10,73 @@ We will keep the document language agnostic.
 - Understanding of the [OFREP](../../README.md)
 - Understanding of the [OFREP OpenAPI specification](../../service/openapi.yaml)
 
-
 ## Constructor
 An implementation of an OFREP client provider should allow in the creation of the provider to take as options:
-- `baseURL`: The base URL of the [flag management system](https://openfeature.dev/specification/glossary#flag-management-system). This should be the base of the URL pointing before the `/ofrep` namespace of the API.
+- `baseURL`: The base URL of the [flag management system](https://openfeature.dev/specification/glossary#flag-management-system).  
+  This should be the base of the URL pointing before the `/ofrep` namespace of the API.
+  - In the constructor, the provider should check if the `baseURL` is a valid URL and return an error if the URL is invalid.
 - `headers`: The headers to use when calling the OFREP endpoints *(ex:`Authorization`, Custom headers, etc ...)*.
-- `pollInteral`: The polling interval defining when to call again the flag management system.
-
-In the constructor, the provider should check if the `baseURL` is a valid URL and return an error if the URL is invalid.
+- `pollInterval`: The polling interval defining when to call again the flag management system.
+  - If `pollInterval` is equals to 0, polling will be disabled.
 
 ## Initialize the provider
 An implementation of an OFREP client provider should start with an initialization of the provider.
 
 The `initialize()` function should follow those steps:
-1. Make a GET request to the `/ofrep/v1/configuration` endpoint to retrieve the configurations return by the flag management system and store them in memory to be available for all the function of the provider. *(See [Annexe 1](#annexe-1) for the description of the endpoint response)*
-2. Make a POST request to the `/ofrep/v1/evaluate/flags` endpoint with the evaluation context in the body.  
-   - If the endpoint returns an error, the `initialize()` function must error and exit.  
-   - If the request is successful, we should store in a local cache all of the flags evaluation results returned by the API in a local cache. We should also store the `ETag` header in the provider to be able to send it back later.
-3. If polling is enabled, the polling loop should start now *(See [polling section](#polling))*.
+1. Make a POST request to the `/ofrep/v1/evaluate/flags` endpoint with the evaluation context in the body.
+
+   **Request body example**:
+   ```json
+    {
+      "context": {
+        "targetingKey": "f021d0f9-33b7-4b22-b0bd-9fec66ba1d7d",
+        "firstname": "foo",
+        "lastname": "bar",
+        "email": "foo.bar@ofrep.dev"
+      }
+    }
+   ```
+
+    - If the endpoint returns an error, the `initialize()` function must error and exit.  
+    - If the request is successful:
+      - We should store in a local cache all of the flags evaluation details returned by the API. 
+      - We should store the `ETag` header in the provider to be able to send it back later.
+2. If `pollInterval` is more than `0`, we should start a polling mechanism to periodically check for flag changes *([See polling section](#polling))*.
 
 ## Evaluation
-The evaluation should not perform any remote API calls.
+The evaluation should not perform any remote API calls and use the local cache.
 
-When calling an evaluation function the provider should check if the associated type is supported, by checking the key `capabilities.flagEvaluation.unsupportedTypes` from the configuration endpoint.
-- If the type is unsupported, we should exit early and directly return an error.
-- If the type is supported, we should retrieve the flag from the local cache of the flags evaluation.
-  - If you are not able to find the flag, you should return an FlagNotFound error.
-  - If the remote evaluation for this flag has return an error, you should map the error in provider and return the associated error.
-  - If the value retrieve from the cache has a different type than the one expected you should return a TypeMismatch error.
-  - If the cached evaluation is in success you should return the evaluation response.
+When calling an evaluation function, the provider should follow those steps:
+1. Retrieve the evaluation details for this flag from the local cache.
+2. If you are not able to find the flag in the local cache, we should return an `FLAG_NOT_FOUND` error.
+3. If the evaluation details contains an error, we should map the error in provider to an OpenFeature error and return it.
+4. If the value of the evaluation details in the cache has a different type than the one expected by the evaluation function you should return a `TYPE_MISMATCH` error.
+5. If the evaluation details retrieved from the cache is successful, you should return the evaluation details.
+
 
 ```mermaid
 flowchart TD
-    A[evaluation\nfunction] --> B{Is function type in\nunsupportedTypes?}
-    B --> |YES| C(return an error)
-    B --> |NO| D{Is flag key stored\nin local cache?}
-    D --> |NO| E(return a FlagNotFound error)
-    D --> |YES| F{Is cached evaluation\nresponse in error?} 
-    F --> |YES| G(Map the error as a\nprovider error and return)
-    F --> |NO| H{Is the flag value the\nsame type as the\nevaluation function?}
+    A[evaluation function] --> D{Do we have an entry in cache for this flag key ?}
+    D --> |NO| E(return a FLAG_NOT_FOUND error)
+    D --> |YES| F{Is cached evaluation details in error?} 
+    F --> |YES| G(Map the error as an OpenFeature provider error and return it)
+    F --> |NO| H{Are the flag and evaluation return types the same?}
     H --> |YES| I(return the evaluation response)
-    H --> |NO| J(return a TypeMismatch error)
+    H --> |NO| J(return a TYPE_MISMATCH error)
 ```
 
 ## Polling
-The polling system will make a POST request periodically to the `/ofrep/v1/evaluate/flags` endpoint to check if there is a change in the flags evaluation to be able to store it.
+The polling system will make a `POST` request periodically to the `/ofrep/v1/evaluate/flags` endpoint to check if there is a change in the flags evaluation to be able to store it.
+The goal is to be able to know when a flag has changed for this evaluation context.
 
-If an `ETag` of a former evaluation is available we should always add the header `If-None-Match` with the `ETag` value.
-- If the cache is still up-to-date we will receive a `304` telling us that the nothing has changed on the flag management system side.
-- If the cache is outdated we will receive a `200` with the new values of all the flags. In that situation we should:
-  1. Replace the actual local cache of flags evaluations.
-  2. Store the new `ETag` value for the future call.
+When you call the API if an `ETag` of a previous evaluation is available it is required to add the header `If-None-Match` with the `ETag` value to the `POST` request.
 
-
-## Annexe 1
-**`/ofrep/v1/configuration` description:**
-The endpoint will return a list of configurations for the provider:
-- `name`: Name of the flag management system, it should be used in the `metadata.name` name (ex: `OFREP Web Provider ${metadata.name}`).
-- `capabilities`: List of capabilities of the flag management system and their associated configuration. *Check the [capabilities section](#capabilities) for the details of each capability.*
-
-### Capabilities
-In this section we will describe each capability and describe their default value and usage.
-
-#### Cache Invalidation
-The capability `cacheInvalidation` describes how the mechanism of cache invalidation works.
-
-##### Polling
-`polling`: define how the provider should do the polling
-
-- `enabled`: if `true` the provider should poll the `/ofrep/v1/evaluate/flags` regularly to check if any flag evaluation has changed in the flag management system.
-- `minPollingInterval`: define the minimum polling interval acceptable by the flag management system. If for any reason the `pollInteral` provided in the constructor is lower than this `minPollingInterval` we should default on this value.
-
-If the key `polling` is not available, the provider should use those default values:
-
-| key                  | default value |
-| -------------------- | ------------- |
-| `enabled`            | `true`        |
-| `minPollingInterval` | 60000         |
-
-
-#### Flag Evaluation
-`flagEvaluation`: define how to manage flag evaluation in the provider.
-- `unsupportedTypes`: Some flag management systems do not support all types. This array should contain all the types not supported by the flag management system. Acceptable values are `int`, `float`, `string`, `boolean`, and `object`.  
-  Default value: `[]`
+When calling the API you can have those response cocde:
+- `304`: Means that your current cache is up-to-date.
+- `401`, `403`: The provider is not authorized to call the OFREP API. In that situation we should return an error and stop polling.
+- `429`: You have reached the rate limit of the flag management system. In that situation the provider should read the `Retry-After` header from the response and ensure that we are not calling the endpoint again before this date.
+- `200`: The cache is outdated. In that situation we should:
+  1. Clear the actual cache.
+  2. Cache the evaluation details received.
+  3. Read the `ETag` header and store it for future call the API.
+  4. Emit an `ConfigurationChanged` event containing in the `flagsChanged` field, a list of the flag key that have changed.
