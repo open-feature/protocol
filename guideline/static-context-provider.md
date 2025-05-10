@@ -66,8 +66,8 @@ flowchart TD
 ```
 
 ## Polling
-The polling system will make a `POST` request periodically to the `/ofrep/v1/evaluate/flags` endpoint with the evaluation context in the body to check if there is a change in the flags evaluation to be able to store it.
-The goal is to be able to know when a flag has changed for this evaluation context.
+The polling system must periodically (interval defined by `pollingInterval`) make a `POST` request to the `/ofrep/v1/evaluate/flags` endpoint with the evaluation context in the body to check if there is a change in the flags evaluation to be able to store it.
+If the flags changed, the provider cache for evaluation is updated.
 
 When calling the API, if an `ETag` of a previous evaluation is available, it must be added to the [`If-None-Match`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/If-None-Match) header with the `ETag` as value.
 
