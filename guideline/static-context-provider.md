@@ -39,8 +39,8 @@ The `initialize()` function must follow those steps:
 
     - If the endpoint returns an error, the `initialize()` function must error and exit.  
     - If the request is successful:
-      - Thew provider must store in a local cache all of the flags evaluation details returned by the API. 
-      - Thew provider must store the `ETag` header in the provider to be able to send it back later.
+      - The provider must store in a local cache all of the flags evaluation details returned by the API. 
+      - The provider must store the `ETag` header in the provider to be able to send it back later.
 2. If `pollInterval` is more than `0`, a polling mechanism must be started to periodically check for flag changes *([See polling section](#polling))*.
 
 ## Evaluation
