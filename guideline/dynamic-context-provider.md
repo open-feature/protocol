@@ -15,6 +15,7 @@ An OFREP server provider implementation must, at the time of creation, accept at
   This must be the base of the URL pointing before the `/ofrep` namespace of the API.
   - In the constructor, the provider should check if the `baseURL` is a valid URL and return an error if the URL is invalid.
 - `headers`: The headers to use when calling the OFREP endpoints *(e.g.:`Authorization`, Custom headers, etc ...)*.
+- `timeout`: This specifies the duration to wait for a response before canceling the HTTP request. If no value is provided, a default timeout of `10 seconds` must be applied.
 
 ## Evaluation
 When an evaluation function is called the server provider will make a `POST` request to the `/ofrep/v1/evaluate/flags/{key}` endpoint *(where `{key}` is the flag name), with the evaluation context in the body.
