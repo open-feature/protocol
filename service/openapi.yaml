@@ -18,10 +18,6 @@ tags:
     description: |
       **Required**: Core APIs to implement to support OFREP.  
       *This is the minimum set of APIs required for a flag management system to be OFREP compatible.*
-  - name: OFREP Extensions
-    description: |
-      **Optional**: Extension APIs to provide full support for OFREP.  
-      *These APIs are utilized by the providers to enhance the OFREP experience.*
       
 paths:
   /ofrep/v1/evaluate/flags/{key}:
