@@ -18,10 +18,6 @@ tags:
     description: |
       **Required**: Core APIs to implement to support OFREP.  
       *This is the minimum set of APIs required for a flag management system to be OFREP compatible.*
-  - name: OFREP Extensions
-    description: |
-      **Optional**: Extension APIs to provide full support for OFREP.  
-      *These APIs are utilized by the providers to enhance the OFREP experience.*
       
 paths:
   /ofrep/v1/evaluate/flags/{key}:
@@ -136,45 +132,6 @@ paths:
                 format: date-time
                 examples:
                   - '2024-02-07T12:00:00Z'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/generalErrorResponse'
-  /ofrep/v1/configuration:
-    get:
-      tags: [OFREP Extensions]
-      summary: OFREP provider configuration
-      description: |
-        OFREP configuration is used to supply information about the remote flag management system and to set up the OpenFeature SDK providers.
-        The providers will contact this endpoint only if the client has opted in.
-      operationId: getConfiguration
-      parameters:
-        - in: header
-          name: If-None-Match
-          description: The request will be processed only if ETag doesn't match any of the values listed.
-          schema:
-            type: string
-          required: false
-      responses:
-        '200':
-          description: OFREP metadata response
-          headers:
-            ETag:
-              schema:
-                type: string
-              description: Entity tag used for cache validation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/configurationResponse'
-        '304':
-          description: Flag Management System Metadata is not modified
-        '401':
-          description: Unauthorized - You need credentials to access the API
-        '403':
-          description: Forbidden - You are not authorized to access the API
         '500':
           description: Internal server error
           content:
@@ -369,72 +326,6 @@ components:
     errorDetails:
       type: string
       description: An error description for logging or other needs
-    configurationResponse:
-      description: OFREP metadata response
-      properties:
-        name:
-          type: string
-          description: name of the flag management system
-          examples:
-            - flagd
-            - go-feature-flag
-        capabilities:
-          type: object
-          description: Capabilities of the flag management system and how to configure them in the provider.
-          properties:
-            cacheInvalidation:
-              $ref: '#/components/schemas/featureCacheInvalidation'
-            flagEvaluation:
-              $ref: '#/components/schemas/flagEvaluation'
-            caching:
-              $ref: '#/components/schemas/featureCaching'
-    flagEvaluation:
-      type: object
-      description: Configurations specific for flag evaluations in OFREP provider implementation
-      properties:
-        supportedTypes:
-          description: |
-            Evaluating a flag of unlisted type through the OFREP provider will result in an error and yield the default value.
-            However, when supportedTypes is undefined/empty, provider assumes that all flag evaluation types are supported by the flag management system
-          type: array
-          items:
-            type: string
-            enum: [int, float, string, boolean, object]
-          examples:
-            - ["object", "int", "float"]
-            - null
-    featureCacheInvalidation:
-      type: object
-      description: Configuration for the cache cacheInvalidation
-      properties:
-        polling:
-          $ref: '#/components/schemas/featureCacheInvalidationPolling'
-    featureCacheInvalidationPolling:
-      type: object
-      description: Configuration of the polling for the featureCacheInvalidation
-      properties:
-        enabled:
-          type: boolean
-          description: set to true if the remote flag management system is supporting polling
-        minPollingIntervalMs:
-          type: number
-          description: |
-            Minimum polling interval (in millisecond) supported by the flag management system.  
-            The provider should ensure not to set any polling value under this minimum.
-          examples:
-            - 60000
-    featureCaching:
-      type: object
-      description: Configuration of the caching mechanism in the provider (used by server providers)
-      properties:
-        enabled:
-          type: boolean
-          description: set to true if you want the provider to cache the evaluation results
-        ttl:
-          type: number
-          examples:
-            - 1000
-          description: number (in millisecond) to wait before invalidating the cache. If we have cacheInvalidation enabled, the cache can also be evicted if a configuration change happen.
     metadata: 
       type: object
       additionalProperties:
