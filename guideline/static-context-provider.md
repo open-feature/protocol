@@ -18,7 +18,7 @@ An OFREP client provider implementation must, at the time of creation, accept at
 - `pollInterval`: The polling interval defining how often to update the cached flags in the provider.
   - If `pollInterval` is equal to 0, polling will be disabled.
   - See [polling section](#polling) for more details.
-- `timeout`: This specifies the duration to wait for a response before canceling the HTTP request. If no value is provided, a default timeout of `10 seconds` must be applied.
+- `timeoutMs`: This specifies the duration to wait for a response before canceling the HTTP request. If no value is provided, a default timeout of `10_000 milliseconds` must be applied.
 
 ## Initialize the provider
 The following describes the [initialization](https://openfeature.dev/specification/sections/providers#24-initialization) of an OFREP provider:
