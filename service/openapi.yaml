@@ -192,10 +192,6 @@ components:
     serverEvaluationSuccess:
       allOf:
         - $ref: "#/components/schemas/evaluationSuccess"
-        - properties:
-            cacheable:
-              type: boolean
-              description: Let the provider know that this flag evaluation can be cached
     evaluationSuccess:
       description: Flag evaluation success response.
       allOf:
