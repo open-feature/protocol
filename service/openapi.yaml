@@ -2,7 +2,7 @@ openapi: 3.1.0
 servers:
   - url: /
 info:
-  version: 0.1.0
+  version: 0.2.0
   title: OpenFeature Remote Evaluation Protocol (OFREP)
   description: OFREP define the protocol for remote flag evaluations
   contact:
@@ -216,6 +216,7 @@ components:
             - $ref: "#/components/schemas/integerFlag"
             - $ref: "#/components/schemas/floatFlag"
             - $ref: "#/components/schemas/objectFlag"
+            - $ref: "#/components/schemas/codeDefaultFlag"
     evaluationFailure:
       description: Flag evaluation failure response
       properties:
@@ -319,6 +320,10 @@ components:
           description: Flag evaluation result
       required:
         - value
+    codeDefaultFlag:
+      description: A flag evaluation that defers to the code default value
+      type: object
+      # Note: No value property - provider must use code default
     errorDetails:
       type: string
       description: An error description for logging or other needs
