@@ -9,46 +9,49 @@
   </picture>
 </p>
 
-![WIP](https://img.shields.io/badge/status-WIP-red)  
-:warning: __OpenFeature Remote Evaluation Protocol is a WIP initiative, expect breaking changes__ :warning:
-
+![Protocol version](https://img.shields.io/github/v/release/openfeature/protocol)
 
 ## What is OFREP?
-OpenFeature Remote Flag Evaluation Protocol, is an API specification for feature flagging that allows the use of generic providers to connect to any feature flag management systems that supports the protocol.
+**OpenFeature Remote Flag Evaluation Protocol**, is an API specification for feature flagging that allows the use of generic providers to connect to any feature flag management systems that supports the protocol.
+
+## Goal
+The primary goal of the OpenFeature Remote Evaluation Protocol (OFREP) is to establish a standardized, vendor-agnostic communication layer for feature flag evaluation. This protocol aims to decouple applications from specific feature flag vendors, fostering a more flexible and interoperable ecosystem.
+
+At its heart, OFREP defines a standard API layer between the provider and the flag management system, allowing OpenSource and commercial feature flag management systems to implement the protocol and to be compatible with the community maintained providers. It enables out-of-the-box compatibility with any OFREP compliant flag management system, regardless if they have a specific OpenFeature provider implementation or not.
+
+If you are building an application that uses feature flags and you don't want to be tied to a specific vendor, you can use the OpenFeature Remote Evaluation Protocol to connect to any flag management system that supports the protocol, without needing to implement a specific provider for it.
+
+## Things to know
+- OFREP is a protocol, not a provider. It defines how to communicate with feature flag management systems.
+- OFREP works on top of OpenFeature SDKs, by providing standardized providers that can be used to connect to any OFREP compliant flag management system.
+- OFREP works on the client side and the server side. It can be used in web, mobile, and server applications.
+- On the servers implementation, OFREP is designed to do evaluation by calling the OFREP API. There is no inprocess evaluation inside the OFREP providers.
+- OpenFeature community has built a set of providers that implement the OFREP protocol, allowing you to connect to any OFREP compliant flag management system.
+
+## OFREP Support
+The OpenFeature community is maintaining a set of providers implementing the OFREP protocol, you can find the list of available providers in the [ecosystem page](https://openfeature.dev/ecosystem/?instant_search%5BrefinementList%5D%5Bvendor%5D%5B0%5D=OFREP) of the OpenFeature website.
+
+You can also find the list of flag management systems that support the OFREP protocol in the [ecosystem page](https://openfeature.dev/ecosystem/?instant_search%5BrefinementList%5D%5Btype%5D%5B0%5D=OFREP%20API).
 
 
-## Goals
-- develop a client/server feature flag evaluation protocol:
-  - define payloads sent between client and server
-  - define the resources and functions available on the server
-  - define the supported transports and encoding methods
-  - define mechanisms for metadata delivery and transport configuration (headers, etc)
-- develop production-ready reference implementation
-  - compliant server
-  - compliant client (provider)
-    - highly configurable and modular
-    - compatible with any server implementation
+## Create a provider for OFREP.
+If your language is not yet supported and you want to create a provider for OFREP, you can follow the OFREP provider guidelines, they will help you to implement a provider that is compatible with the OpenFeature Remote Evaluation Protocol.
 
-## Non-Goals
+- [OFREP Server Provider Guideline](./guideline/dynamic-context-provider.md)
+- [OFREP Client Provider Guideline](./guideline/static-context-provider.md)
+- [OpenAPI Specification](./service/openapi.yaml)
 
-- defining a schema for the definition or storage of feature flags
-- defining an expression language for feature flag targeting rules
+> [!NOTE]
+> After implementing the provider, you can register it in the OpenFeature ecosystem page by [creating an issue](https://github.com/open-feature/openfeature.dev/issues).
 
-## Design Principles
+## Implement OFREP in your flag management system.
 
-We value the following:
-  - adherence to OpenFeature semantics
-  - maximum compatibility and ease-of-adoption for existing solutions
-  - minimum traffic and payload size
-  - low latency of flag evaluations
-  - portability and interoperability between runtimes and languages (should be usable in web, mobile devices, and server)
-  - minimum reliance on dependencies (leverage ubiquitous, native transports and encodings where possible)
+If you want to implement the OpenFeature Remote Evaluation Protocol in your flag management system, you must support the OpenAPI specification and implement the different endpoints defined.
 
-## Providers
-- [GO](https://github.com/open-feature/go-sdk-contrib/tree/main/providers/ofrep)
-- [JS Server](https://github.com/open-feature/js-sdk-contrib/tree/main/libs/providers/ofrep)
-- [JS Web](https://github.com/open-feature/js-sdk-contrib/tree/main/libs/providers/ofrep-web)
- 
+- [OpenAPI Specification](./service/openapi.yaml)
+
+> [!NOTE]
+> After implementing the OpenAPI specification, you can register your flag management system in the OpenFeature ecosystem page by [creating an issue](https://github.com/open-feature/openfeature.dev/issues), so users can find it and use it with the OFREP providers.
+
 ## Contribution
 If you are interested about the OpenFeature Remote Evaluation Protocol you can join the [`#openfeature-remote-evaluation-protocol`](https://cloud-native.slack.com/archives/C066A48LK35) slack channel on the [CNCF Slack](https://communityinviter.com/apps/cloud-native/cncf).
-
