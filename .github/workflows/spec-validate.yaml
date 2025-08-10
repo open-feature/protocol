@@ -15,6 +15,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run OpenAPI spec validation
-        uses: stoplightio/spectral-action@v0.8.11
+        uses: stoplightio/spectral-action@v0.8.13
         with:
           file_glob: 'service/openapi.yaml'
