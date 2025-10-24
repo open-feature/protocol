@@ -89,6 +89,7 @@ To make your flag management system OFREP-compliant:
 4. Test your implementation with existing OFREP providers
 5. Register your system in the [OpenFeature ecosystem](https://github.com/open-feature/openfeature.dev/issues)
 
+<!-- x-hide-in-docs-start -->
 ## Resources
 
 - **OpenAPI Specification**: [OFREP OpenAPI Spec](./service/openapi.yaml)
@@ -110,3 +111,4 @@ OFREP is an open standard maintained by the OpenFeature community. We welcome co
 - **Share your experience** using OFREP
 
 Join the [`#openfeature-remote-evaluation-protocol`](https://cloud-native.slack.com/archives/C066A48LK35) channel on the [CNCF Slack](https://communityinviter.com/apps/cloud-native/cncf) to get involved.
+<!-- x-hide-in-docs-end -->
