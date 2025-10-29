@@ -54,9 +54,12 @@ paths:
           schema:
             type: string
           examples:
-            - discount-banner
-            - new-checkout-flow
-            - experimental-feature
+            discountBanner:
+              value: discount-banner
+            newCheckoutFlow:
+              value: new-checkout-flow
+            experimentalFeature:
+              value: experimental-feature
       requestBody:
         required: true
         description: Evaluation request containing the context for flag evaluation
@@ -164,8 +167,10 @@ paths:
                   - type: integer
                     description: Number of seconds to wait before retrying
               examples:
-                - "2024-02-07T12:00:00Z"
-                - 60
+                dateTime:
+                  value: "2024-02-07T12:00:00Z"
+                seconds:
+                  value: 60
         "500":
           description: Internal Server Error. An unexpected error occurred on the server that prevented flag evaluation.
           content:
@@ -202,8 +207,10 @@ paths:
             type: string
           required: false
           examples:
-            - '"abc123xyz"'
-            - W/"abc123xyz"'
+            strongEtag:
+              value: '"abc123xyz"'
+            weakEtag:
+              value: 'W/"abc123xyz"'
       requestBody:
         required: true
         content:
@@ -231,8 +238,10 @@ paths:
                 include this value in subsequent requests using the `If-None-Match` header for 
                 cache validation.
               examples:
-                - '"abc123xyz"'
-                - W/"abc123xyz"'
+                strongEtag:
+                  value: '"abc123xyz"'
+                weakEtag:
+                  value: 'W/"abc123xyz"'
           content:
             application/json:
               schema:
@@ -287,8 +296,9 @@ paths:
               schema:
                 type: string
                 format: date-time
-                examples:
-                  - "2024-02-07T12:00:00Z"
+              examples:
+                dateTime:
+                  value: "2024-02-07T12:00:00Z"
         "500":
           description: Internal server error. An unexpected error occurred on the server that prevented flag evaluation.
           content:
