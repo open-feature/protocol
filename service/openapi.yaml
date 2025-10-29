@@ -113,8 +113,7 @@ paths:
               schema:
                 type: string
                 format: date-time
-                examples:
-                  - "2024-02-07T12:00:00Z"
+                example: "2024-02-07T12:00:00Z"
         "500":
           description: Internal Server Error. An unexpected error occurred on the server that prevented flag evaluation.
           content:
@@ -283,16 +282,11 @@ components:
           description: |
             An error code specific to the bulk evaluation error. See 
             https://openfeature.dev/specification/types#error-code for error code definitions.
-          examples:
-            - INVALID_CONTEXT
-            - PARSE_ERROR
-            - GENERAL
+          example: INVALID_CONTEXT
         errorDetails:
           type: string
           description: Optional error details description for logging or debugging purposes
-          examples:
-            - "Context is missing required targetingKey property"
-            - "Failed to parse evaluation request: invalid JSON"
+          example: "Context is missing required targetingKey property"
       required:
         - errorCode
     evaluationRequest:
@@ -327,23 +321,11 @@ components:
                 An OpenFeature reason code indicating why the flag was evaluated to this value. 
                 See https://openfeature.dev/specification/types/#resolution-reason for reason code definitions.
               enum: [STATIC, TARGETING_MATCH, SPLIT, DISABLED, UNKNOWN]
-              examples:
-                - STATIC
-                - TARGETING_MATCH
-                - SPLIT
-                - DISABLED
-                - UNKNOWN
             variant:
               type: string
               description: |
                 Variant identifier for the evaluated feature flag value. Represents a specific variation 
                 or configuration of the feature flag.
-              examples:
-                - enabled
-                - disabled
-                - variant-a
-                - variant-b
-                - default
             metadata:
               allOf:
                 - $ref: "#/components/schemas/metadata"
@@ -370,11 +352,6 @@ components:
             OpenFeature compatible error code indicating the type of error. See 
             https://openfeature.dev/specification/types#error-code for error code definitions.
           enum: [PARSE_ERROR, TARGETING_KEY_MISSING, INVALID_CONTEXT, GENERAL]
-          examples:
-            - PARSE_ERROR
-            - TARGETING_KEY_MISSING
-            - INVALID_CONTEXT
-            - GENERAL
         errorDetails:
           $ref: "#/components/schemas/errorDetails"
         metadata:
@@ -398,8 +375,6 @@ components:
           type: string
           description: Error code indicating the flag was not found
           enum: [FLAG_NOT_FOUND]
-          examples:
-            - FLAG_NOT_FOUND
         errorDetails:
           $ref: "#/components/schemas/errorDetails"
         metadata:
@@ -423,11 +398,7 @@ components:
       description: |
         The unique identifier (key) of the feature flag. This is used to reference a specific 
         flag in the flag management system.
-      examples:
-        - discount-banner
-        - new-checkout-flow
-        - experimental-feature
-        - theme-color
+      example: discount-banner
     context:
       type: object
       description: |
@@ -440,11 +411,11 @@ components:
         targetingKey:
           type: string
       additionalProperties: true
-      examples:
-        - targetingKey: user-123
-          email: user@example.com
-          plan: premium
-          country: CA
+      example:
+        targetingKey: user-123
+        email: user@example.com
+        plan: premium
+        country: CA
     booleanFlag:
       description: A boolean typed flag value. Used for simple on/off feature flags.
       type: object
@@ -514,13 +485,10 @@ components:
           - type: number
     flagMetadataExamples:
       description: Example metadata structure for flags
-      examples:
-        - team: ecommerce
-          businessPurpose: experiment
-          owner: "product-team"
-        - team: engineering
-          businessPurpose: gradual-rollout
-          environment: production
+      example:
+        team: ecommerce
+        businessPurpose: experiment
+        owner: "product-team"
     flagMetadataDescription:
       description: |
         Arbitrary metadata for the flag, useful for telemetry and documentary purposes.
