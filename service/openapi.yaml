@@ -4,126 +4,283 @@ servers:
 info:
   version: 0.2.0
   title: OpenFeature Remote Evaluation Protocol (OFREP)
-  description: OFREP define the protocol for remote flag evaluations
+  description: |
+    ---
+    The **OpenFeature Remote Evaluation Protocol (OFREP)** is an API specification for feature flagging 
+    that enables vendor-agnostic communication between applications and flag management systems. 
+
+    OFREP defines a standard API layer between OpenFeature providers and flag management systems, 
+    allowing any flag management system to implement the protocol and be compatible with 
+    community-maintained providers.
+
+    For more information, see the [OFREP documentation](https://openfeature.dev/docs/reference/other-technologies/ofrep/).
+
   contact:
     url: https://github.com/open-feature/protocol
   license:
     identifier: Apache-2.0
     name: Apache 2.0
 security:
-  - ApiKeyAuth: [ ]
-  - BearerAuth: [ ]
+  - ApiKeyAuth: []
+  - BearerAuth: []
 tags:
   - name: OFREP Core
     description: |
       **Required**: Core APIs to implement to support OFREP.  
       *This is the minimum set of APIs required for a flag management system to be OFREP compatible.*
-      
+
 paths:
   /ofrep/v1/evaluate/flags/{key}:
     post:
       tags: [OFREP Core]
-      summary: OFREP single flag evaluation contract
+      summary: Evaluate A Single Feature Flag
       description: |
-        OFREP single flag evaluation request.
-        The endpoint is called by the server providers to perform single flag evaluation.
+        Evaluates a single feature flag by its key. This endpoint is used by **server-side providers** 
+        for dynamic context evaluation, where each evaluation request includes the evaluation context.
+
+        The endpoint returns the evaluated flag value along with metadata including the evaluation 
+        reason, variant, and any flag-specific metadata. The flag value can be one of several types: 
+        boolean, string, integer, float, object, or a code default (indicating the provider should 
+        use the code default value).
+
+        **Use Case**: Server-side applications where evaluation context may change between requests 
+        and real-time targeting decisions are required.
       operationId: evaluateFlag
       parameters:
         - name: key
           in: path
           required: true
+          description: The unique identifier (key) of the feature flag
           schema:
             type: string
+          examples:
+            - discount-banner
+            - new-checkout-flow
+            - experimental-feature
       requestBody:
+        required: true
+        description: Evaluation request containing the context for flag evaluation
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/evaluationRequest'
+              $ref: "#/components/schemas/evaluationRequest"
+            examples:
+              userContext:
+                summary: User context example
+                value:
+                  context:
+                    targetingKey: user-123
+                    email: user@example.com
+                    custom-plan: premium
+              serviceContext:
+                summary: Service context example
+                value:
+                  context:
+                    targetingKey: configuration-service
+                    version: 1.2.3
+                    region: us-east-1
       responses:
-        '200':
-          description: OFREP successful evaluation response
+        "200":
+          description: Successful flag evaluation. Returns the evaluated flag value with metadata.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/serverEvaluationSuccess'
-        '400':
-          description: Bad evaluation request
+                $ref: "#/components/schemas/serverEvaluationSuccess"
+              examples:
+                booleanFlag:
+                  summary: Boolean flag evaluation
+                  value:
+                    key: discount-banner
+                    value: true
+                    reason: TARGETING_MATCH
+                    variant: enabled
+                    metadata:
+                      team: marketing
+                      businessPurpose: promotion
+                stringFlag:
+                  summary: String flag evaluation
+                  value:
+                    key: theme-color
+                    value: "blue"
+                    reason: STATIC
+                    variant: default
+                    metadata:
+                      team: design
+                codeDefault:
+                  summary: Code default flag (no value property)
+                  value:
+                    key: experimental-feature
+                    reason: DISABLED
+                    variant: off
+                    metadata:
+                      team: engineering
+        "400":
+          description: Bad evaluation request. The request is malformed or contains invalid context.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/evaluationFailure'
-        '404':
-          description: Flag not found
+                $ref: "#/components/schemas/evaluationFailure"
+              examples:
+                invalidContext:
+                  summary: Invalid context error
+                  value:
+                    key: my-flag
+                    errorCode: INVALID_CONTEXT
+                    errorDetails: "Context is missing required targetingKey property"
+                targetingKeyMissing:
+                  summary: Missing targeting key
+                  value:
+                    key: my-flag
+                    errorCode: TARGETING_KEY_MISSING
+                    errorDetails: "targetingKey is required for evaluation"
+        "404":
+          description: Flag not found. The specified flag key does not exist in the flag management system.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/flagNotFound'
-        '401':
-          description: Unauthorized - You need credentials to access the API
-        '403':
-          description: Forbidden - You are not authorized to access the API
-        '429':
-          description: Rate limit reached on the Flag Management System
+                $ref: "#/components/schemas/flagNotFound"
+              examples:
+                flagNotFound:
+                  summary: Flag not found
+                  value:
+                    key: non-existent-flag
+                    errorCode: FLAG_NOT_FOUND
+                    errorDetails: "Flag 'non-existent-flag' was not found"
+        "401":
+          description: Unauthorized. Authentication credentials are missing, invalid, or expired.
+        "403":
+          description: Forbidden. The client does not have permission to access the requested resource.
+        "429":
+          description: Too Many Requests. Rate limit has been exceeded.
           headers:
             Retry-After:
-              description: Indicates when to retry the request again
+              description: |
+                Indicates when to retry the request again. Can be either a date-time string 
+                or a number of seconds to wait.
               schema:
-                type: string
-                format: date-time
-                examples:
-                  - '2024-02-07T12:00:00Z'
-        '500':
-          description: Internal server error
+                oneOf:
+                  - type: string
+                    format: date-time
+                  - type: integer
+                    description: Number of seconds to wait before retrying
+              examples:
+                - "2024-02-07T12:00:00Z"
+                - 60
+        "500":
+          description: Internal Server Error. An unexpected error occurred on the server that prevented flag evaluation.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/generalErrorResponse'
+                $ref: "#/components/schemas/generalErrorResponse"
+              examples:
+                serverError:
+                  summary: Internal server error
+                  value:
+                    errorDetails: "An internal server error occurred while processing the request"
   /ofrep/v1/evaluate/flags:
     post:
       tags: [OFREP Core]
-      summary: OFREP bulk flag evaluation contract
+      summary: Bulk Evaluate All Feature Flags
       description: |
-        OFREP bulk evaluation request.
-        The endpoint is called by the client providers to evaluate all flags at once.
+        Evaluates all feature flags in a single request using a static context. This endpoint is 
+        used by **client-side providers** for static context evaluation, where all flags are evaluated 
+        once and then cached locally for subsequent use.
+
+        The endpoint returns an array of all flag evaluations, where each flag can be either a 
+        successful evaluation or an evaluation failure. The response includes an ETag header for 
+        cache validation, allowing clients to use the `If-None-Match` header to avoid unnecessary 
+        re-evaluation when flags haven't changed.
       operationId: evaluateFlagsBulk
       parameters:
         - in: header
           name: If-None-Match
-          description: The request will be processed only if ETag doesn't match any of the values listed.
+          description: |
+            Optional ETag value from a previous bulk evaluation response. If provided and the 
+            ETag matches the current flag set, the server will return a 304 Not Modified response, 
+            indicating that flags haven't changed since the last evaluation.
           schema:
             type: string
           required: false
+          examples:
+            - '"abc123xyz"'
+            - W/"abc123xyz"'
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/bulkEvaluationRequest'
+              $ref: "#/components/schemas/bulkEvaluationRequest"
+            examples:
+              clientContext:
+                summary: Client-side user context
+                value:
+                  context:
+                    targetingKey: user-456
+                    email: user@example.com
+                    plan: free
+                    country: CA
       responses:
-        '200':
-          description: OFREP successful evaluation response
+        "200":
+          description: Successful bulk evaluation.
           headers:
             ETag:
               schema:
                 type: string
-              description: Entity tag used for cache validation
+              description: |
+                Entity tag (ETag) representing the current state of all flags. Clients should 
+                include this value in subsequent requests using the `If-None-Match` header for 
+                cache validation.
+              examples:
+                - '"abc123xyz"'
+                - W/"abc123xyz"'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/bulkEvaluationSuccess'
-        '304':
-          description: Bulk evaluation is not modified
-        '400':
-          description: Bad evaluation request
+                $ref: "#/components/schemas/bulkEvaluationSuccess"
+              examples:
+                bulkEvaluation:
+                  summary: Bulk evaluation with multiple flags
+                  value:
+                    flags:
+                      - key: discount-banner
+                        value: true
+                        reason: TARGETING_MATCH
+                        variant: enabled
+                      - key: theme-color
+                        value: "blue"
+                        reason: STATIC
+                        variant: default
+                      - key: non-existent-flag
+                        errorCode: FLAG_NOT_FOUND
+                        errorDetails: "Flag 'non-existent-flag' was not found"
+                    metadata:
+                      version: v12
+        "304":
+          description: |
+            Not Modified. The flags haven't changed since the last evaluation (ETag matches). No response body is returned.
+        "400":
+          description: Bad evaluation request. The request is malformed or contains invalid context.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/bulkEvaluationFailure'
-        '401':
-          description: Unauthorized - You need credentials to access the API
-        '403':
-          description: Forbidden - You are not authorized to access the API
-        '429':
-          description: Rate limit reached on the Flag Management System
+                $ref: "#/components/schemas/bulkEvaluationFailure"
+              examples:
+                invalidContext:
+                  summary: Invalid context error
+                  value:
+                    errorCode: INVALID_CONTEXT
+                    errorDetails: "Context is missing required targetingKey property"
+                parseError:
+                  summary: Parse error
+                  value:
+                    errorCode: PARSE_ERROR
+                    errorDetails: "Failed to parse evaluation request"
+        "401":
+          description: Unauthorized. Authentication credentials are missing, invalid, or expired.
+        "403":
+          description: Forbidden. The client does not have permission to access the requested resource.
+        "429":
+          description: Too Many Requests. Rate limit has been exceeded.
           headers:
             Retry-After:
               description: Indicates when to retry the request again
@@ -131,80 +288,134 @@ paths:
                 type: string
                 format: date-time
                 examples:
-                  - '2024-02-07T12:00:00Z'
-        '500':
-          description: Internal server error
+                  - "2024-02-07T12:00:00Z"
+        "500":
+          description: Internal server error. An unexpected error occurred on the server that prevented flag evaluation.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/generalErrorResponse'
+                $ref: "#/components/schemas/generalErrorResponse"
 components:
   securitySchemes:
     BearerAuth:
-      description: (optional) Bearer Authorization to your flag management system.
+      description: |
+        Optional Bearer token authentication. If supported by the flag management system, 
+        clients can authenticate using a Bearer token in the `Authorization` header following 
+        the format: `Authorization: Bearer <token>`.
       type: http
       scheme: bearer
+      bearerFormat: JWT
     ApiKeyAuth:
-      description: (optional) API Key to your flag management system.
+      description: |
+        Optional API key authentication. If supported by the flag management system, clients 
+        can authenticate by providing an API key in the `X-API-Key` header.
       type: apiKey
       in: header
       name: X-API-Key
   schemas:
     bulkEvaluationRequest:
-      description: Evaluate multiple flags in one request
+      description: |
+        Request body for bulk flag evaluation. Contains a static context that will be used 
+        to evaluate all flags.
+      type: object
+      required:
+        - context
       properties:
         context:
-          $ref: '#/components/schemas/context'
+          $ref: "#/components/schemas/context"
     bulkEvaluationSuccess:
-      description: Success response for the bulk evaluation request
+      description: |
+        Success response for bulk flag evaluation. Contains an array of flag evaluations, 
+        where each item can be either a successful evaluation or an evaluation failure. 
+        This allows partial success scenarios where some flags may fail while others succeed.
       type: object
       required:
         - flags
       properties:
         flags:
           type: array
+          description: Array of flag evaluations. Each evaluation can be a success or failure.
           items:
             oneOf:
               - $ref: "#/components/schemas/evaluationSuccess"
-              - $ref: '#/components/schemas/evaluationFailure'
+              - $ref: "#/components/schemas/evaluationFailure"
         metadata:
           $ref: "#/components/schemas/metadata"
-          description: Arbitrary metadata for the flag set, useful for telemetry and documentary purposes.
-          examples:
-            - flagSetId: holidaySales
-              version: v12
+          description: |
+            Arbitrary metadata for the flag set, useful for telemetry and documentary purposes.
     bulkEvaluationFailure:
-      description: Bulk evaluation failure response
+      description: |
+        Failure response for bulk evaluation. Returned when the entire bulk evaluation request 
+        fails (e.g., invalid context, parse errors). Individual flag failures within a successful 
+        bulk evaluation are represented as evaluationFailure items in the flags array.
+      type: object
       properties:
         errorCode:
           type: string
-          description: An appropriate  code specific to the bulk evaluation error. See https://openfeature.dev/specification/types#error-code
+          description: |
+            An error code specific to the bulk evaluation error. See 
+            https://openfeature.dev/specification/types#error-code for error code definitions.
+          examples:
+            - INVALID_CONTEXT
+            - PARSE_ERROR
+            - GENERAL
         errorDetails:
           type: string
-          description: Optional error details description for logging or other needs
+          description: Optional error details description for logging or debugging purposes
+          examples:
+            - "Context is missing required targetingKey property"
+            - "Failed to parse evaluation request: invalid JSON"
       required:
         - errorCode
     evaluationRequest:
-      description: Flag evaluation request
+      description: |
+        Request body for single feature flag evaluation. Contains the evaluation context that will be 
+        used to evaluate the feature flag.
+      type: object
+      required:
+        - context
       properties:
         context:
-          $ref: '#/components/schemas/context'
+          $ref: "#/components/schemas/context"
     serverEvaluationSuccess:
       allOf:
         - $ref: "#/components/schemas/evaluationSuccess"
     evaluationSuccess:
-      description: Flag evaluation success response.
+      description: |
+        Successful feature flag evaluation response. The value property is present 
+        for all flag types except `codeDefaultFlag`, which indicates the provider should use the 
+        code default value.
+      type: object
+      required:
+        - key
+        - reason
       allOf:
         - properties:
             key:
               $ref: "#/components/schemas/key"
             reason:
               type: string
-              examples: [ STATIC,TARGETING_MATCH,SPLIT,DISABLED,UNKNOWN ]
-              description: An OpenFeature reason for the evaluation
+              description: |
+                An OpenFeature reason code indicating why the flag was evaluated to this value. 
+                See https://openfeature.dev/specification/types/#resolution-reason for reason code definitions.
+              enum: [STATIC, TARGETING_MATCH, SPLIT, DISABLED, UNKNOWN]
+              examples:
+                - STATIC
+                - TARGETING_MATCH
+                - SPLIT
+                - DISABLED
+                - UNKNOWN
             variant:
               type: string
-              description: Variant of the evaluated flag value
+              description: |
+                Variant identifier for the evaluated feature flag value. Represents a specific variation 
+                or configuration of the feature flag.
+              examples:
+                - enabled
+                - disabled
+                - variant-a
+                - variant-b
+                - default
             metadata:
               allOf:
                 - $ref: "#/components/schemas/metadata"
@@ -218,16 +429,26 @@ components:
             - $ref: "#/components/schemas/objectFlag"
             - $ref: "#/components/schemas/codeDefaultFlag"
     evaluationFailure:
-      description: Flag evaluation failure response
+      description: |
+        Feature flag evaluation failure response. Returned when a feature flag evaluation fails, such as when 
+        the context is invalid, required targeting keys are missing, or parsing errors occur. 
+      type: object
       properties:
         key:
-          $ref: '#/components/schemas/key'
+          $ref: "#/components/schemas/key"
         errorCode:
           type: string
-          enum: [ PARSE_ERROR,TARGETING_KEY_MISSING,INVALID_CONTEXT,GENERAL ]
-          description: OpenFeature compatible error code. See https://openfeature.dev/specification/types#error-code
+          description: |
+            OpenFeature compatible error code indicating the type of error. See 
+            https://openfeature.dev/specification/types#error-code for error code definitions.
+          enum: [PARSE_ERROR, TARGETING_KEY_MISSING, INVALID_CONTEXT, GENERAL]
+          examples:
+            - PARSE_ERROR
+            - TARGETING_KEY_MISSING
+            - INVALID_CONTEXT
+            - GENERAL
         errorDetails:
-          $ref: '#/components/schemas/errorDetails'
+          $ref: "#/components/schemas/errorDetails"
         metadata:
           allOf:
             - $ref: "#/components/schemas/metadata"
@@ -237,15 +458,22 @@ components:
         - key
         - errorCode
     flagNotFound:
-      description: Flag not found response
+      description: |
+        Feature flag not found response. Returned when a requested feature flag key does not exist in the 
+        flag management system. This can be an expected response in certain flag management systems. 
+        This is distinct from evaluation failures, which occur when a flag exists but cannot be evaluated.
+      type: object
       properties:
         key:
-          $ref: '#/components/schemas/key'
+          $ref: "#/components/schemas/key"
         errorCode:
           type: string
-          enum: [ FLAG_NOT_FOUND ]
+          description: Error code indicating the flag was not found
+          enum: [FLAG_NOT_FOUND]
+          examples:
+            - FLAG_NOT_FOUND
         errorDetails:
-          $ref: '#/components/schemas/errorDetails'
+          $ref: "#/components/schemas/errorDetails"
         metadata:
           allOf:
             - $ref: "#/components/schemas/metadata"
@@ -255,89 +483,116 @@ components:
         - key
         - errorCode
     generalErrorResponse:
-      description: A general error response from the service
+      description: |
+        General error response for unexpected server errors (500 status). Used when the 
+        server encounters an internal error that prevents flag evaluation.
+      type: object
       properties:
         errorDetails:
-          $ref: '#/components/schemas/errorDetails'
+          $ref: "#/components/schemas/errorDetails"
     key:
       type: string
-      description: Feature flag key
+      description: |
+        The unique identifier (key) of the feature flag. This is used to reference a specific 
+        flag in the flag management system.
       examples:
-        - my-flag
+        - discount-banner
+        - new-checkout-flow
+        - experimental-feature
+        - theme-color
     context:
       type: object
-      description: Context information for flag evaluation
+      description: |
+        Evaluation context containing information used to evaluate feature flags. The context 
+        includes a `targetingKey` (required) along with additional properties such as 
+        user attributes, session data, or request metadata that can be used for targeting rules.
+      required:
+        - targetingKey
       properties:
         targetingKey:
           type: string
-          description: A string logically identifying the subject of evaluation (end-user, service, etc).
-          examples:
-            - user-123
       additionalProperties: true
+      examples:
+        - targetingKey: user-123
+          email: user@example.com
+          plan: premium
+          country: CA
     booleanFlag:
-      description: A boolean typed flag value
+      description: A boolean typed flag value. Used for simple on/off feature flags.
+      type: object
       properties:
         value:
           type: boolean
-          description: Flag evaluation result
       required:
         - value
     stringFlag:
-      description: A string typed flag value
+      description: A string typed flag value.
+      type: object
       properties:
         value:
           type: string
-          description: Flag evaluation result
-          examples:
-            - "my-flag-value"
       required:
         - value
     integerFlag:
-      description: An integer typed flag value
+      description: An integer typed flag value.
+      type: object
       properties:
         value:
           type: integer
-          description: Flag evaluation result
-          examples:
-            - 3
       required:
         - value
     floatFlag:
-      description: A float typed flag value
+      description: A float typed flag value.
+      type: object
       properties:
         value:
           type: number
-          description: Flag evaluation result
-          examples:
-            - 3.1415
+          format: float
       required:
         - value
     objectFlag:
-      description: An object typed flag value
+      description: An object typed flag value.
+      type: object
       properties:
         value:
           type: object
-          description: Flag evaluation result
+          additionalProperties: true
       required:
         - value
     codeDefaultFlag:
-      description: A flag evaluation that defers to the code default value
+      description: |
+        A flag evaluation that defers to the code default value. When a flag evaluation returns 
+        this type, it indicates that the provider should use the default value specified in the 
+        application code rather than a value from the flag management system.
+
+        **Note**: This schema has no `value` property. The provider must use the code default 
+        value when processing this response.
       type: object
-      # Note: No value property - provider must use code default
+      properties: {}
     errorDetails:
       type: string
-      description: An error description for logging or other needs
-    metadata: 
+      description: |
+        A human-readable error description providing additional context about the evaluation 
+        failure. Useful for logging, debugging, and monitoring purposes.
+    metadata:
       type: object
+      description: |
+        Arbitrary metadata object that can contain any additional information about flags or 
+        flag sets. This metadata is useful for debugging and telemetry purposes.
       additionalProperties:
         oneOf:
           - type: boolean
           - type: string
           - type: number
     flagMetadataExamples:
+      description: Example metadata structure for flags
       examples:
         - team: ecommerce
-          businessPurpose: experiment 
+          businessPurpose: experiment
+          owner: "product-team"
+        - team: engineering
+          businessPurpose: gradual-rollout
+          environment: production
     flagMetadataDescription:
-      description: Arbitrary metadata for the flag, useful for telemetry and documentary purposes.
-
+      description: |
+        Arbitrary metadata for the flag, useful for telemetry and documentary purposes.
