@@ -53,13 +53,7 @@ paths:
           description: The unique identifier (key) of the feature flag
           schema:
             type: string
-          examples:
-            discountBanner:
-              value: discount-banner
-            newCheckoutFlow:
-              value: new-checkout-flow
-            experimentalFeature:
-              value: experimental-feature
+          example: discount-banner
       requestBody:
         required: true
         description: Evaluation request containing the context for flag evaluation
@@ -67,21 +61,12 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/evaluationRequest"
-            examples:
-              userContext:
-                summary: User context example
-                value:
-                  context:
-                    targetingKey: user-123
-                    email: user@example.com
-                    custom-plan: premium
-              serviceContext:
-                summary: Service context example
-                value:
-                  context:
-                    targetingKey: configuration-service
-                    version: 1.2.3
-                    region: us-east-1
+            example:
+              context:
+                targetingKey: user-123
+                email: user@example.com
+                custom-plan: premium
+                country: CA
       responses:
         "200":
           description: Successful flag evaluation. Returns the evaluated flag value with metadata.
@@ -89,66 +74,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/serverEvaluationSuccess"
-              examples:
-                booleanFlag:
-                  summary: Boolean flag evaluation
-                  value:
-                    key: discount-banner
-                    value: true
-                    reason: TARGETING_MATCH
-                    variant: enabled
-                    metadata:
-                      team: marketing
-                      businessPurpose: promotion
-                stringFlag:
-                  summary: String flag evaluation
-                  value:
-                    key: theme-color
-                    value: "blue"
-                    reason: STATIC
-                    variant: default
-                    metadata:
-                      team: design
-                codeDefault:
-                  summary: Code default flag (no value property)
-                  value:
-                    key: experimental-feature
-                    reason: DISABLED
-                    variant: off
-                    metadata:
-                      team: engineering
+              example:
+                key: discount-banner
+                value: true
+                reason: TARGETING_MATCH
+                variant: enabled
         "400":
           description: Bad evaluation request. The request is malformed or contains invalid context.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/evaluationFailure"
-              examples:
-                invalidContext:
-                  summary: Invalid context error
-                  value:
-                    key: my-flag
-                    errorCode: INVALID_CONTEXT
-                    errorDetails: "Context is missing required targetingKey property"
-                targetingKeyMissing:
-                  summary: Missing targeting key
-                  value:
-                    key: my-flag
-                    errorCode: TARGETING_KEY_MISSING
-                    errorDetails: "targetingKey is required for evaluation"
+              example:
+                key: my-flag
+                errorCode: INVALID_CONTEXT
+                errorDetails: "Context is missing required targetingKey property"
         "404":
           description: Flag not found. The specified flag key does not exist in the flag management system.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/flagNotFound"
-              examples:
-                flagNotFound:
-                  summary: Flag not found
-                  value:
-                    key: non-existent-flag
-                    errorCode: FLAG_NOT_FOUND
-                    errorDetails: "Flag 'non-existent-flag' was not found"
+              example:
+                key: non-existent-flag
+                errorCode: FLAG_NOT_FOUND
+                errorDetails: "Flag 'non-existent-flag' was not found"
         "401":
           description: Unauthorized. Authentication credentials are missing, invalid, or expired.
         "403":
@@ -161,27 +111,18 @@ paths:
                 Indicates when to retry the request again. Can be either a date-time string 
                 or a number of seconds to wait.
               schema:
-                oneOf:
-                  - type: string
-                    format: date-time
-                  - type: integer
-                    description: Number of seconds to wait before retrying
-              examples:
-                dateTime:
-                  value: "2024-02-07T12:00:00Z"
-                seconds:
-                  value: 60
+                type: string
+                format: date-time
+                examples:
+                  - "2024-02-07T12:00:00Z"
         "500":
           description: Internal Server Error. An unexpected error occurred on the server that prevented flag evaluation.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/generalErrorResponse"
-              examples:
-                serverError:
-                  summary: Internal server error
-                  value:
-                    errorDetails: "An internal server error occurred while processing the request"
+              example:
+                errorDetails: "An internal server error occurred while processing the request"
   /ofrep/v1/evaluate/flags:
     post:
       tags: [OFREP Core]
@@ -206,26 +147,19 @@ paths:
           schema:
             type: string
           required: false
-          examples:
-            strongEtag:
-              value: '"abc123xyz"'
-            weakEtag:
-              value: 'W/"abc123xyz"'
+          example: '"abc123xyz"'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/bulkEvaluationRequest"
-            examples:
-              clientContext:
-                summary: Client-side user context
-                value:
-                  context:
-                    targetingKey: user-456
-                    email: user@example.com
-                    plan: free
-                    country: CA
+            example:
+              context:
+                targetingKey: user-456
+                email: user@example.com
+                plan: free
+                country: CA
       responses:
         "200":
           description: Successful bulk evaluation.
@@ -237,33 +171,26 @@ paths:
                 Entity tag (ETag) representing the current state of all flags. Clients should 
                 include this value in subsequent requests using the `If-None-Match` header for 
                 cache validation.
-              examples:
-                strongEtag:
-                  value: '"abc123xyz"'
-                weakEtag:
-                  value: 'W/"abc123xyz"'
+              example: '"abc123xyz"'
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/bulkEvaluationSuccess"
-              examples:
-                bulkEvaluation:
-                  summary: Bulk evaluation with multiple flags
-                  value:
-                    flags:
-                      - key: discount-banner
-                        value: true
-                        reason: TARGETING_MATCH
-                        variant: enabled
-                      - key: theme-color
-                        value: "blue"
-                        reason: STATIC
-                        variant: default
-                      - key: non-existent-flag
-                        errorCode: FLAG_NOT_FOUND
-                        errorDetails: "Flag 'non-existent-flag' was not found"
-                    metadata:
-                      version: v12
+              example:
+                flags:
+                  - key: discount-banner
+                    value: true
+                    reason: TARGETING_MATCH
+                    variant: enabled
+                  - key: theme-color
+                    value: "blue"
+                    reason: STATIC
+                    variant: default
+                  - key: non-existent-flag
+                    errorCode: FLAG_NOT_FOUND
+                    errorDetails: "Flag 'non-existent-flag' was not found"
+                metadata:
+                  version: v12
         "304":
           description: |
             Not Modified. The flags haven't changed since the last evaluation (ETag matches). No response body is returned.
@@ -273,17 +200,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/bulkEvaluationFailure"
-              examples:
-                invalidContext:
-                  summary: Invalid context error
-                  value:
-                    errorCode: INVALID_CONTEXT
-                    errorDetails: "Context is missing required targetingKey property"
-                parseError:
-                  summary: Parse error
-                  value:
-                    errorCode: PARSE_ERROR
-                    errorDetails: "Failed to parse evaluation request"
+              example:
+                errorCode: INVALID_CONTEXT
+                errorDetails: "Context is missing required targetingKey property"
         "401":
           description: Unauthorized. Authentication credentials are missing, invalid, or expired.
         "403":
@@ -296,9 +215,8 @@ paths:
               schema:
                 type: string
                 format: date-time
-              examples:
-                dateTime:
-                  value: "2024-02-07T12:00:00Z"
+                example:
+                  "2024-02-07T12:00:00Z"
         "500":
           description: Internal server error. An unexpected error occurred on the server that prevented flag evaluation.
           content:
