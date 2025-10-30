@@ -210,18 +210,24 @@ paths:
           description: Too Many Requests. Rate limit has been exceeded.
           headers:
             Retry-After:
-              description: Indicates when to retry the request again
+              description: |
+                Indicates when to retry the request again. Can be either a date-time string 
+                or a number of seconds to wait.
               schema:
-                type: string
-                format: date-time
-                example:
-                  "2024-02-07T12:00:00Z"
+                oneOf:
+                  - type: string
+                    format: date-time
+                  - type: integer
+                    description: Number of seconds to wait before retrying
+              example: "2024-02-07T12:00:00Z"
         "500":
           description: Internal server error. An unexpected error occurred on the server that prevented flag evaluation.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/generalErrorResponse"
+              example:
+                errorDetails: "An internal server error occurred while processing the request"
 components:
   securitySchemes:
     BearerAuth:
