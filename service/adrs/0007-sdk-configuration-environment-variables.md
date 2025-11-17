@@ -61,6 +61,7 @@ SDKs should:
 - **Configuration Complexity**: Multiple configuration sources (environment variables, programmatic configuration) may lead to confusion about precedence and debugging challenges  
 - **Security Considerations**: Environment variables containing sensitive information (headers with authentication tokens) may be visible in process lists or container configurations
 - **Platform Limitations**: Some deployment platforms may have restrictions on environment variable names or values that could impact adoption
+- **Multi-Provider Limitation**: In scenarios where multiple OFREP providers need to be configured simultaneously (e.g., different providers for different feature flag domains), environment variables cannot easily specify provider-specific configuration without introducing complex naming conventions or requiring programmatic configuration
 
 ## Alternatives Considered
 
