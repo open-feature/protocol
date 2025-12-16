@@ -35,7 +35,7 @@ Define the following standard environment variables:
 
 - **OFREP_ENDPOINT**: The base URL for the OFREP service (e.g., `http://localhost:2321`)
 - **OFREP_HEADERS**: Additional HTTP headers in comma-separated key=value format (e.g., "Authorization=Bearer 123,Content-Type=application/json")  
-- **OFREP_TIMEOUT**: Request timeout in milliseconds (e.g., "5000")
+- **OFREP_TIMEOUT_MS**: Request timeout in milliseconds (e.g., "5000")
 
 SDKs should:
 
