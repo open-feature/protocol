@@ -81,3 +81,49 @@ SDKs should:
 - **Validation Strategy**: SDKs should validate environment variable formats during initialization and provide clear error messages for invalid values (e.g., invalid URLs, malformed headers)  
 - **Documentation Requirements**: All SDK implementations should document supported environment variables, their expected formats, and provide examples for common deployment scenarios
 - **Migration Support**: Existing applications should continue to work without changes, with environment variable support being additive functionality
+
+### Header Parsing Specification (Amendment)
+
+The `OFREP_HEADERS` environment variable uses a comma-separated key=value format. SDKs must parse headers according to the following rules to ensure consistent behavior across all OFREP implementations:
+
+#### Parsing Algorithm
+
+1. **URL-Decode the entire string first**:  Apply URL decoding to the entire `OFREP_HEADERS` value before processing. This allows special characters to be represented using percent-encoding (e.g., `%20` for space, `%3D` for equals).
+
+2. **Split by comma**: Divide the decoded string into header pairs using comma (`,`) as the delimiter.
+
+3. **Split each pair by the first equals sign**: For each pair, locate the first `=` character to separate the key from the value.
+
+4. **Trim whitespace**:  Remove leading and trailing whitespace from both keys and values.
+
+5. **Log warnings for invalid entries**: Skip any malformed entries and log a warning for each one (e.g., missing key, missing equals sign).
+
+#### Example
+
+Given:
+
+`OFREP_HEADERS=Authorization=Bearer%20token,X-Custom=value`
+
+After URL decoding:
+
+`Authorization=Bearer token,X-Custom=value`
+
+#### Limitations and Constraints
+
+- **Commas as separators only**: Commas are always treated as header separators. Even if a comma is URL-encoded as `%2C`, it will be decoded and then treated as a separator, not as part of a header value. **Commas cannot be included in header values.** This limitation exists because some shells do not properly support certain special characters in environment variable values, making escaped commas unreliable across different platforms.
+
+- **First equals sign separates key and value**: The first `=` character (after URL decoding) separates the key from the value. Additional `=` characters in the value are preserved as part of the value and do not require special encoding.
+
+- **No equals signs in keys**: Equals signs in header keys are not supported. Only the first `=` is used as the delimiter; if a key contains `=`, behavior is undefined and SDKs should log a warning and skip the entry.
+
+- **Empty keys not allowed**: Header entries with empty keys must be rejected and logged as warnings.
+
+- **URL encoding support**: URL encoding (percent-encoding) is supported for header values to include special characters.
+
+#### Validation
+
+SDKs should:
+
+- Validate that the parsed headers result in non-empty key-value pairs
+- Log warnings for any skipped or malformed entries without failing initialization
+- Provide clear error messages indicating which headers were invalid and why
