@@ -89,13 +89,9 @@ The `OFREP_HEADERS` environment variable uses a comma-separated key=value format
 #### Parsing Algorithm
 
 1. **URL-Decode the entire string first**:  Apply URL decoding to the entire `OFREP_HEADERS` value before processing. This allows special characters to be represented using percent-encoding (e.g., `%20` for space, `%3D` for equals).
-
 2. **Split by comma**: Divide the decoded string into header pairs using comma (`,`) as the delimiter.
-
 3. **Split each pair by the first equals sign**: For each pair, locate the first `=` character to separate the key from the value.
-
 4. **Trim whitespace**:  Remove leading and trailing whitespace from both keys and values.
-
 5. **Log warnings for invalid entries**: Skip any malformed entries and log a warning for each one (e.g., missing key, missing equals sign).
 
 #### Example
@@ -111,13 +107,9 @@ After URL decoding:
 #### Limitations and Constraints
 
 - **Commas as separators only**: Commas are always treated as header separators. Even if a comma is URL-encoded as `%2C`, it will be decoded and then treated as a separator, not as part of a header value. **Commas cannot be included in header values.** This limitation exists because some shells do not properly support certain special characters in environment variable values, making escaped commas unreliable across different platforms.
-
 - **First equals sign separates key and value**: The first `=` character (after URL decoding) separates the key from the value. Additional `=` characters in the value are preserved as part of the value and do not require special encoding.
-
 - **No equals signs in keys**: Equals signs in header keys are not supported. Only the first `=` is used as the delimiter; if a key contains `=`, behavior is undefined and SDKs should log a warning and skip the entry.
-
 - **Empty keys not allowed**: Header entries with empty keys must be rejected and logged as warnings.
-
 - **URL encoding support**: URL encoding (percent-encoding) is supported for header values to include special characters.
 
 #### Validation
