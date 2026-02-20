@@ -10,6 +10,8 @@ Proposed
 
 OFREP currently relies exclusively on polling for flag change detection in client-side (static context) providers. As described in [ADR-0005](0005-polling-for-bulk-evaluation-changes.md), polling was chosen initially for simplicity, with the explicit expectation that additional change detection mechanisms would be added later.
 
+This ADR focuses primarily on static-context providers (for example web and mobile SDK providers) that use bulk evaluation caching patterns. It does not introduce SSE requirements for dynamic-context providers that primarily use single-flag evaluations.
+
 Polling has known limitations:
 - There is no way to implement real-time flag updates
 - Frequent polling introduces unnecessary load on flag management systems
@@ -27,6 +29,7 @@ Server-Sent Events (SSE) is a W3C standard that fits this use case well:
 ## Decision
 
 Add an optional `sse` array to the bulk evaluation response (`POST /ofrep/v1/evaluate/flags`). When present, it provides SSE endpoint URLs that the provider connects to for real-time flag change notifications.
+This is primarily intended for static-context providers (for example web/mobile clients) that rely on bulk evaluations.
 
 SSE is used as a **notification-only** mechanism -- events signal the provider to re-fetch the bulk evaluation via the existing endpoint, rather than streaming full evaluation payloads. This keeps the SSE message format simple, reuses existing infrastructure, and avoids duplicating evaluation logic.
 
@@ -175,9 +178,11 @@ sse:
   type: array
   description: |
     Optional array of SSE (Server-Sent Events) endpoints the client can connect
-    to for real-time flag change notifications. When present, the provider should
-    connect to these endpoints and re-fetch flag evaluations when notified of changes.
-    If not present, the provider should continue using polling for change detection.
+    to for real-time flag change notifications. This is primarily intended for
+    static-context providers (for example web/mobile providers) using bulk
+    evaluation caching patterns. When present, the provider should connect to
+    these endpoints and re-fetch flag evaluations when notified of changes. If
+    not present, the provider should continue using polling for change detection.
   items:
     $ref: "#/components/schemas/sseConnection"
 
