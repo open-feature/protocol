@@ -139,6 +139,7 @@ Provider implementation guidelines:
    - If `refreshConnections` is absent, close all existing connections and fall back to configured change detection behavior.
    - If `refreshConnections` is present and the URL set is unchanged, existing connections may be reused.
    - If `refreshConnections` is present and the URL set has changed, close existing connections then connect to the new URLs.
+7. Providers SHOULD coalesce concurrent `refetchEvaluation` events into a single re-fetch request (e.g., via in-flight deduplication or a short debounce window) to avoid amplifying load on the flag management system when multiple connections fire simultaneously.
 
 ### OpenAPI Schema Additions
 
