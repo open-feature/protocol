@@ -63,7 +63,7 @@ Add an optional `refreshConnections` field to `bulkEvaluationSuccess`:
 Each refresh connection object has:
 - `type` (string, required): The connection type. Currently `"sse"` is the only defined value. Providers must ignore entries with unknown types for forward compatibility, allowing new push mechanisms to be added without breaking existing clients.
 - `url` (string, required): The endpoint URL. The URL is opaque to the provider and may include authentication tokens, channel identifiers, or other vendor-specific query parameters.
-- `inactivityDelaySec` (integer, optional): Seconds of client inactivity (e.g., browser tab or mobile app backgrounded) after which the connection should be closed. The client must reconnect and re-fetch when activity resumes.
+- `inactivityDelaySec` (integer, optional): Seconds of client inactivity (e.g., browser tab hidden, mobile app backgrounded) after which the connection should be closed. The client must reconnect and perform a full unconditional re-fetch when activity resumes. Minimum value is `1`. If omitted, providers should default to `120` seconds.
 
 The `refreshConnections` field is an array to support vendors whose infrastructure may require connections to multiple channels or endpoints (e.g., a global channel for environment-wide changes and a user-specific channel for targeted updates). Many SSE providers support multiple channels on a single URL, so the array will typically contain a single entry.
 
@@ -217,12 +217,13 @@ refreshConnection:
       example: "https://sse.example.com/event-stream?channels=env_abc123_v1"
     inactivityDelaySec:
       type: integer
-      minimum: 0
+      minimum: 1
       description: |
-        Number of seconds of client inactivity after which the connection
-        should be closed to conserve resources. The client must reconnect
-        when activity resumes. If omitted or 0, the connection should be
-        maintained indefinitely.
+        Number of seconds of client inactivity (e.g., browser tab hidden,
+        mobile app backgrounded) after which the connection should be closed
+        to conserve resources. The client must reconnect and perform a full
+        unconditional re-fetch when activity resumes. If omitted, providers
+        should default to 120 seconds.
       example: 120
 ```
 
