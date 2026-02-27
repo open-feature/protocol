@@ -96,7 +96,7 @@ Transporting SSE metadata to the bulk endpoint:
 - For browser-based SDKs, query parameters avoid CORS preflight costs that would be introduced by custom headers.
 - The metadata originates from the SSE channel, so query parameters make the source and intent explicit.
 - This is particularly useful for implementations where the OFREP server validates internal cache state and storage freshness directly (for example, cache + object storage bindings) rather than forwarding conditional headers upstream.
-- To reduce cross-language date parsing ambiguity, providers and servers should prefer Unix timestamp seconds for `lastModified` / `sseLastModified` when possible.
+- To reduce cross-language date parsing ambiguity, providers and servers should prefer Unix timestamp in seconds for `lastModified` / `sseLastModified` when possible.
 
 ### Provider Behavior
 
@@ -131,7 +131,7 @@ sequenceDiagram
 Provider implementation guidelines:
 1. After the initial bulk evaluation response, if `refreshConnections` is present, the provider should connect to any entries with a known `type` (currently `"sse"`).
 2. On receiving a `refetchEvaluation` event, the provider must re-fetch flag evaluations from the bulk evaluation endpoint. If `etag` is present, it should be sent as `sseEtag` query parameter. If `lastModified` is present, it should be sent as `sseLastModified` query parameter. These query parameters should only be included for requests directly triggered by processing that SSE event.
-   `lastModified` parsing should support Unix timestamp seconds and date string formats.
+   `lastModified` parsing should support Unix timestamp in seconds and date string formats.
 3. If `inactivityDelaySec` is specified, the provider should close the SSE connection after the specified inactivity period. On resumption, it must reconnect and immediately perform a full unconditional re-fetch -- without `If-None-Match`, `sseEtag`, or `sseLastModified` -- to ensure the cache reflects the current server state after an unknown period of inactivity.
 4. If the SSE connection fails or is unavailable, the provider must fall back to its configured change detection behavior: if polling is enabled, continue with polling; if polling is disabled, continue SSE reconnection attempts and rely on explicit refresh triggers such as `onContextChange`.
 5. Providers should implement reconnection with exponential backoff. The native `EventSource` API in browsers handles this automatically.
@@ -161,7 +161,7 @@ Provider implementation guidelines:
   name: sseLastModified
   description: |
     Optional SSE-provided last-modified metadata for SSE-triggered re-fetches.
-    Supports Unix timestamp seconds (recommended) or a date string (ISO 8601 /
+    Supports Unix timestamp in seconds (recommended) or a date string (ISO 8601 /
     HTTP-date), and is transported as query metadata rather than
     `If-Modified-Since`. It should only be included when the request is directly
     triggered by a received SSE message.
