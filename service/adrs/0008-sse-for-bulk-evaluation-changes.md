@@ -28,14 +28,14 @@ Server-Sent Events (SSE) is a W3C standard that fits this use case well:
 
 ## Decision
 
-Add an optional `sse` array to the bulk evaluation response (`POST /ofrep/v1/evaluate/flags`). When present, it provides SSE endpoint URLs that the provider connects to for real-time flag change notifications.
+Add an optional `refreshConnections` array to the bulk evaluation response (`POST /ofrep/v1/evaluate/flags`). When present, it provides connection endpoints that the provider connects to for real-time flag change notifications.
 This is primarily intended for static-context providers (for example web/mobile clients) that rely on bulk evaluations.
 
 SSE is used as a **notification-only** mechanism -- events signal the provider to re-fetch the bulk evaluation via the existing endpoint, rather than streaming full evaluation payloads. This keeps the SSE message format simple, reuses existing infrastructure, and avoids duplicating evaluation logic.
 
 ### Response Schema
 
-Add an optional `sse` field to `bulkEvaluationSuccess`:
+Add an optional `refreshConnections` field to `bulkEvaluationSuccess`:
 
 ```json
 {
@@ -47,8 +47,9 @@ Add an optional `sse` field to `bulkEvaluationSuccess`:
       "variant": "enabled"
     }
   ],
-  "sse": [
+  "refreshConnections": [
     {
+      "type": "sse",
       "url": "https://sse.example.com/event-stream?channels=env_abc123_v1",
       "inactivityDelaySec": 120
     }
@@ -59,11 +60,12 @@ Add an optional `sse` field to `bulkEvaluationSuccess`:
 }
 ```
 
-Each SSE connection object has:
-- `url` (string, required): The SSE endpoint URL. The URL is opaque to the provider and may include authentication tokens, channel identifiers, or other vendor-specific query parameters.
-- `inactivityDelaySec` (integer, optional): Seconds of client inactivity (e.g., browser tab or mobile app backgrounded) after which the SSE connection should be closed. The client must reconnect and re-fetch when activity resumes.
+Each refresh connection object has:
+- `type` (string, required): The connection type. Currently `"sse"` is the only defined value. Providers must ignore entries with unknown types for forward compatibility, allowing new push mechanisms to be added without breaking existing clients.
+- `url` (string, required): The endpoint URL. The URL is opaque to the provider and may include authentication tokens, channel identifiers, or other vendor-specific query parameters.
+- `inactivityDelaySec` (integer, optional): Seconds of client inactivity (e.g., browser tab or mobile app backgrounded) after which the connection should be closed. The client must reconnect and re-fetch when activity resumes.
 
-The `sse` field is an array to support vendors whose infrastructure may require connections to multiple channels or endpoints (e.g., a global channel for environment-wide changes and a user-specific channel for targeted updates). Many SSE providers support multiple channels on a single URL, so the array will typically contain a single entry.
+The `refreshConnections` field is an array to support vendors whose infrastructure may require connections to multiple channels or endpoints (e.g., a global channel for environment-wide changes and a user-specific channel for targeted updates). Many SSE providers support multiple channels on a single URL, so the array will typically contain a single entry.
 
 ### SSE Event Format
 
@@ -105,7 +107,7 @@ sequenceDiagram
     participant SSE as SSE Endpoint
 
     Client->>Server: POST /ofrep/v1/evaluate/flags
-    Server-->>Client: 200 OK (flags + sse URLs + ETag)
+    Server-->>Client: 200 OK (flags + refreshConnections + ETag header)
     Client->>Client: Cache flags, store ETag
     Client->>SSE: Connect to SSE URL(s)
 
@@ -127,13 +129,13 @@ sequenceDiagram
 ```
 
 Provider implementation guidelines:
-1. After the initial bulk evaluation response, if `sse` is present, the provider should connect to the provided URL(s).
+1. After the initial bulk evaluation response, if `refreshConnections` is present, the provider should connect to any entries with a known `type` (currently `"sse"`).
 2. On receiving a `refetchEvaluation` event, the provider must re-fetch flag evaluations from the bulk evaluation endpoint. If `etag` is present, it should be sent as `sseEtag` query parameter. If `lastModified` is present, it should be sent as `sseLastModified` query parameter. These query parameters should only be included for requests directly triggered by processing that SSE event.
    `lastModified` parsing should support Unix timestamp seconds and date string formats.
 3. If `inactivityDelaySec` is specified, the provider should close the SSE connection after the specified inactivity period. On resumption, it must reconnect and immediately re-fetch without SSE query metadata.
 4. If the SSE connection fails or is unavailable, the provider must fall back to its configured change detection behavior: if polling is enabled, continue with polling; if polling is disabled, continue SSE reconnection attempts and rely on explicit refresh triggers such as `onContextChange`.
 5. Providers should implement reconnection with exponential backoff. The native `EventSource` API in browsers handles this automatically.
-6. When `onContextChange` is triggered, the provider re-fetches the bulk evaluation without SSE query metadata. The SSE URL(s) in the new response may differ, and the provider must update its connections accordingly.
+6. When `onContextChange` is triggered, the provider re-fetches the bulk evaluation without SSE query metadata. The `refreshConnections` in the new response may differ, and the provider must update its connections accordingly.
 
 ### OpenAPI Schema Additions
 
@@ -174,40 +176,50 @@ Provider implementation guidelines:
       value: "Thu, 20 Feb 2026 21:28:18 GMT"
 
 # Add to bulkEvaluationSuccess.properties:
-sse:
+refreshConnections:
   type: array
   description: |
-    Optional array of SSE (Server-Sent Events) endpoints the client can connect
-    to for real-time flag change notifications. This is primarily intended for
-    static-context providers (for example web/mobile providers) using bulk
-    evaluation caching patterns. When present, the provider should connect to
-    these endpoints and re-fetch flag evaluations when notified of changes. If
-    not present, the provider should continue using polling for change detection.
+    Optional array of real-time change notification connections. This is primarily
+    intended for static-context providers (for example web/mobile providers) using
+    bulk evaluation caching patterns. When present, the provider should connect to
+    any entries with a known type and re-fetch flag evaluations when notified of
+    changes. If not present, the provider should continue using polling for change
+    detection. Entries with unknown types must be ignored for forward compatibility.
   items:
-    $ref: "#/components/schemas/sseConnection"
+    $ref: "#/components/schemas/refreshConnection"
 
 # Add to components.schemas:
-sseConnection:
+refreshConnection:
   description: |
-    An SSE connection endpoint for receiving real-time flag change notifications.
+    A real-time change notification connection endpoint. The `type` field
+    identifies the push mechanism; currently only `sse` is defined. Providers
+    must ignore entries with unknown types for forward compatibility.
   type: object
   required:
+    - type
     - url
   properties:
+    type:
+      type: string
+      description: |
+        The connection type identifying the push mechanism to use.
+        Currently only `sse` is defined. Providers must ignore entries
+        with unknown types for forward compatibility.
+      example: "sse"
     url:
       type: string
       format: uri
       description: |
-        The SSE endpoint URL the client should connect to for real-time
+        The endpoint URL the client should connect to for real-time
         flag change notifications. The URL may include authentication tokens,
         channel identifiers, or other query parameters as needed by the
-        vendor's SSE infrastructure.
+        vendor's infrastructure.
       example: "https://sse.example.com/event-stream?channels=env_abc123_v1"
     inactivityDelaySec:
       type: integer
       minimum: 0
       description: |
-        Number of seconds of client inactivity after which the SSE connection
+        Number of seconds of client inactivity after which the connection
         should be closed to conserve resources. The client must reconnect
         when activity resumes. If omitted or 0, the connection should be
         maintained indefinitely.
@@ -221,7 +233,7 @@ sseConnection:
 - **Real-time flag updates**: Providers can receive flag change notifications immediately rather than waiting for the next poll interval
 - **Reduced server load**: Eliminates unnecessary polling requests when flags have not changed
 - **Vendor-agnostic**: The `url` field is opaque, allowing vendors to use any SSE infrastructure (hosted services like Ably/Pusher, self-hosted endpoints, CDN-based proxies)
-- **Backward compatible**: The `sse` field is fully optional -- servers that don't support it omit the field, providers that don't support it ignore the field and continue their configured change detection behavior
+- **Backward compatible**: The `refreshConnections` field is fully optional -- servers that don't support it omit the field, providers that don't support it ignore the field and continue their configured change detection behavior
 - **Builds on existing infrastructure**: Uses the existing bulk evaluation endpoint for data transfer, keeping SSE as a lightweight notification layer
 
 ### Negative
