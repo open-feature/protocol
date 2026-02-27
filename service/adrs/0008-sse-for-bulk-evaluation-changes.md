@@ -79,7 +79,7 @@ data: {"type": "refetchEvaluation", "etag": "\"abc123\"", "lastModified": 177162
 
 Event data fields:
 - `type` (string, required): The event type. Providers must handle `refetchEvaluation` and must ignore unknown types for forward compatibility.
-- `etag` (string, optional): Latest flag configuration validator sent over SSE metadata. If present, providers should include it as the `sseEtag` query parameter on the re-fetch request.
+- `etag` (string, optional): Latest flag configuration cache validation token sent over SSE metadata. If present, providers should include it as the `sseEtag` query parameter on the re-fetch request.
 - `lastModified` (string | integer, optional): Latest flag configuration timestamp sent over SSE metadata. Supports either Unix timestamp in seconds (recommended) or a date string (ISO 8601 or HTTP-date). If present, providers should include it as the `sseLastModified` query parameter on the re-fetch request.
 
 SSE envelope fields:
