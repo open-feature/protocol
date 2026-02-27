@@ -135,7 +135,10 @@ Provider implementation guidelines:
 3. If `inactivityDelaySec` is specified, the provider should close the SSE connection after the specified inactivity period. On resumption, it must reconnect and immediately perform a full unconditional re-fetch -- without `If-None-Match`, `sseEtag`, or `sseLastModified` -- to ensure the cache reflects the current server state after an unknown period of inactivity.
 4. If the SSE connection fails or is unavailable, the provider must fall back to its configured change detection behavior: if polling is enabled, continue with polling; if polling is disabled, continue SSE reconnection attempts and rely on explicit refresh triggers such as `onContextChange`.
 5. Providers should implement reconnection with exponential backoff. The native `EventSource` API in browsers handles this automatically.
-6. When `onContextChange` is triggered, the provider re-fetches the bulk evaluation without SSE query metadata. The `refreshConnections` in the new response may differ, and the provider must update its connections accordingly.
+6. When `onContextChange` is triggered, the provider re-fetches the bulk evaluation without SSE query metadata and updates its connections based on the new response:
+   - If `refreshConnections` is absent, close all existing connections and fall back to configured change detection behavior.
+   - If `refreshConnections` is present and the URL set is unchanged, existing connections may be reused.
+   - If `refreshConnections` is present and the URL set has changed, close existing connections then connect to the new URLs.
 
 ### OpenAPI Schema Additions
 
