@@ -77,8 +77,12 @@ event: message
 data: {"type": "refetchEvaluation", "etag": "\"abc123\"", "lastModified": 1771622898}
 ```
 
+The SSE envelope `event:` field is always `message`. Using a named SSE event type (e.g. `event: refetchEvaluation`) was considered but rejected — most SSE client libraries (Java, Swift, .NET, Python) do not support registering handlers per named event type and require manual dispatch regardless, so routing via a `type` field inside the JSON `data` payload achieves the same result consistently across all implementations. It also makes ignoring unknown future event types trivial with a single generic handler.
+
+Providers must inspect `data.type` to determine behavior — not the SSE envelope `event:` field.
+
 Event data fields:
-- `type` (string, required): The event type. Providers must handle `refetchEvaluation` and must ignore unknown types for forward compatibility.
+- `type` (string, required): The OFREP event type inside the JSON data payload. Providers must handle `refetchEvaluation` and must ignore unknown values for forward compatibility.
 - `etag` (string, optional): Latest flag configuration cache validation token sent over SSE metadata. If present, providers should include it as the `sseEtag` query parameter on the re-fetch request.
 - `lastModified` (string | integer, optional): Latest flag configuration timestamp sent over SSE metadata. Supports either Unix timestamp in seconds (recommended) or a date string (ISO 8601 or HTTP-date). If present, providers should include it as the `sseLastModified` query parameter on the re-fetch request.
 
