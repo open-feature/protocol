@@ -123,6 +123,10 @@ sequenceDiagram
         Client->>Client: Update cache, emit ConfigurationChanged
     else Flags unchanged
         Server-->>Client: 304 Not Modified
+    else Server not yet updated (stale)
+        Server-->>Client: 5xx or stale 200
+        Note over Client,Server: Server may internally invalidate cache and retry<br/>until updated value is available before responding
+        Client->>Client: Fall back to polling on persistent failure
     end
 
     Note over Client: Browser tab backgrounded
