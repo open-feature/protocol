@@ -270,13 +270,13 @@ refreshConnection:
    - **Answer:** Providers should connect to all URLs and coalesce concurrent `refetchEvaluation` events via in-flight deduplication or a short debounce window. Minimum coalescing expectations are left to provider implementations for now.
 
 4. **Should `inactivityDelaySec` be server-provided or client-side configuration?**
-   - **Answer:** This ADR specifies it as server-provided with a default of 120 seconds when omitted, allowing the server to tune connection lifecycle. Providers may also expose a client-side override.
+   - **Answer:** This ADR specifies `inactivityDelaySec` as server-provided, defaulting to 120 seconds when omitted. Providers may expose a client-side override, which should take precedence over the server-provided value.
 
 5. **Should non-`refetchEvaluation` SSE messages be forwarded to the provider?**
    - **Answer:** A mechanism to forward unknown typed messages to the provider via an events/hook interface could be valuable but is deferred to a future revision.
 
 6. **Should SSE metadata be transported via query parameters or custom headers?**
-   - **Answer:** This ADR uses query params (`sseEtag`, `sseLastModified`) as the single transport mechanism for all SDK types. Custom headers were considered but rejected — most SSE client libraries require manual dispatch regardless of event type, and a single mechanism simplifies implementation across browser, mobile, and server environments. CORS preflight costs make custom headers impractical for browser-based SDKs.
+   - **Answer:** Query params are used as the single transport mechanism for all SDK types. Custom headers were considered but rejected because non-safelisted headers trigger CORS preflight `OPTIONS` requests in browsers, adding a round-trip on every SSE-triggered re-fetch. Query params also make the SSE origin of the metadata explicit, distinguishing `sseEtag`/`sseLastModified` from standard HTTP conditional request headers (`If-None-Match` / `If-Modified-Since`).
 
 7. **What security requirements should apply to tokenized SSE URLs?**
    - **Answer:** Providers must not log or persist SSE URLs as they may contain auth tokens or channel credentials. Further requirements around token lifetime and rotation are left to vendor implementations.
