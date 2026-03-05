@@ -284,7 +284,7 @@ refreshConnection:
 ## Implementation Notes
 
 - **Provider change detection configuration**: Providers should expose a `changeDetection` configuration option with the following values:
-  - `sse` *(default)*: Use SSE if the bulk evaluation response includes a `refreshConnections` entry with `type: "sse"`, falling back to polling on connection failure. If no `refreshConnections` are present, polling is used.
+  - `sse` *(default)*: Use SSE if the bulk evaluation response includes a `refreshConnections` entry with `type: "sse"`. On connection failure, providers MAY fall back to polling only when polling is enabled (for example, when a positive `pollInterval` is configured); otherwise, they SHOULD continue attempting SSE and rely on explicit refresh triggers. If no `refreshConnections` are present, polling is used (subject to the same polling configuration).
   - `polling`: Ignore `refreshConnections` and rely solely on polling.
   - `none`: Perform no background refresh; rely solely on explicit `onContextChange` calls.
 - **Existing SSE libraries**: The LaunchDarkly open-source SSE client libraries ([Java/Android](https://github.com/launchdarkly/okhttp-eventsource), [.NET](https://github.com/launchdarkly/dotnet-eventsource), [JavaScript](https://github.com/launchdarkly/js-eventsource), [Python](https://github.com/launchdarkly/python-eventsource), [Swift/iOS](https://github.com/launchdarkly/swift-eventsource)) are well-maintained and could be used by OFREP provider implementations. Browser environments can use the native `EventSource` API.
