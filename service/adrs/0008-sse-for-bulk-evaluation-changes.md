@@ -260,13 +260,26 @@ refreshConnection:
 
 ## Open Questions
 
-1. **Should `refetchEvaluation` be required, or should providers refetch on any SSE message?** Requiring a specific `type` field enables future event types without triggering unnecessary refetches. Refetching on any message is simpler. This ADR recommends requiring `type=refetchEvaluation` for forward compatibility.
-2. **Should providers support streaming full evaluation payloads over SSE?** This ADR focuses on the notification pattern. Full payload streaming could be specified as a separate event type in a future revision.
-3. **What is the recommended coalescing strategy when multiple SSE connections are specified?** Providers should connect to all URLs, but should re-fetch in a coalesced way (debounce + in-flight dedupe) to avoid amplification. Should OFREP define minimum coalescing expectations?
-4. **Should `inactivityDelaySec` be server-provided or client-side configuration?** This ADR specifies it as server-provided, allowing the server to tune connection lifecycle. Providers may also expose a client-side override.
-5. **Should non-`refetchEvaluation` SSE messages be forwarded to the provider?** Should we add a mechanism to support non-`refetchEvaluation` typed messages that are forwarded through to the provider via an events/hook interface?
-6. **Should SSE metadata be transported via query parameters or custom headers?** This ADR currently recommends query params (`sseEtag`, `sseLastModified`) due to browser CORS preflight considerations and the non-conditional-request semantics. Should OFREP also define an optional custom header form for non-browser clients?
-7. **What security requirements should apply to tokenized SSE URLs?** Should OFREP require URL redaction in logs/telemetry, recommend short-lived scoped tokens, and discourage long-term persistence of raw SSE URLs?
+1. **Should `refetchEvaluation` be required, or should providers refetch on any SSE message?**
+   - **Answer:** Requiring a specific `type` field enables future event types without triggering unnecessary refetches. This ADR recommends requiring `type=refetchEvaluation` for forward compatibility.
+
+2. **Should providers support streaming full evaluation payloads over SSE?**
+   - **Answer:** The notification-only + re-fetch approach works well for architectures using CDNs and edge workers that can absorb the burst of concurrent re-fetch requests. For providers without that infrastructure, sending the full config or a diff directly over SSE may be more appropriate. Future event types such as `fullConfig` or `patchConfig` could be defined in a follow-up ADR without breaking the existing contract.
+
+3. **What is the recommended coalescing strategy when multiple SSE connections are specified?**
+   - **Answer:** Providers should connect to all URLs and coalesce concurrent `refetchEvaluation` events via in-flight deduplication or a short debounce window. Minimum coalescing expectations are left to provider implementations for now.
+
+4. **Should `inactivityDelaySec` be server-provided or client-side configuration?**
+   - **Answer:** This ADR specifies it as server-provided with a default of 120 seconds when omitted, allowing the server to tune connection lifecycle. Providers may also expose a client-side override.
+
+5. **Should non-`refetchEvaluation` SSE messages be forwarded to the provider?**
+   - **Answer:** A mechanism to forward unknown typed messages to the provider via an events/hook interface could be valuable but is deferred to a future revision.
+
+6. **Should SSE metadata be transported via query parameters or custom headers?**
+   - **Answer:** This ADR uses query params (`sseEtag`, `sseLastModified`) as the single transport mechanism for all SDK types. Custom headers were considered but rejected — most SSE client libraries require manual dispatch regardless of event type, and a single mechanism simplifies implementation across browser, mobile, and server environments. CORS preflight costs make custom headers impractical for browser-based SDKs.
+
+7. **What security requirements should apply to tokenized SSE URLs?**
+   - **Answer:** Providers must not log or persist SSE URLs as they may contain auth tokens or channel credentials. Further requirements around token lifetime and rotation are left to vendor implementations.
 
 ## Implementation Notes
 
