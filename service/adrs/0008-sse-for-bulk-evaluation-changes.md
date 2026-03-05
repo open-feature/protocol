@@ -116,7 +116,7 @@ sequenceDiagram
     Client->>SSE: Connect to SSE URL(s)
 
     Note over SSE,Client: Real-time change notification
-    SSE-->>Client: event: refetchEvaluation (etag, lastModified)
+    SSE-->>Client: event: message (data.type=refetchEvaluation, etag, lastModified)
     Client->>Server: POST /ofrep/v1/evaluate/flags?sseEtag=etag&sseLastModified=lastModified
     alt Flags changed
         Server-->>Client: 200 OK (new flags + ETag)
