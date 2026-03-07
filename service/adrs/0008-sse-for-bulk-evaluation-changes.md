@@ -97,7 +97,7 @@ Reconnection and replay behavior:
 Transporting SSE metadata to the bulk endpoint:
 - `sseEtag` and `sseLastModified` are SSE-trigger metadata, not standard HTTP conditional request validators for endpoint-level response caching semantics.
 - `sseEtag` and `sseLastModified` should only be sent when the re-fetch request is directly triggered by a received SSE message.
-- For browser-based SDKs, query parameters avoid CORS preflight costs that would be introduced by custom headers.
+- For browser-based SDKs, using query parameters instead of custom headers avoids introducing additional non-safelisted headers that would require expanding `Access-Control-Allow-Headers` and helps keep CORS configuration simpler.
 - The metadata originates from the SSE channel, so query parameters make the source and intent explicit.
 - This is particularly useful for implementations where the OFREP server validates internal cache state and storage freshness directly (for example, cache + object storage bindings) rather than forwarding conditional headers upstream.
 - To reduce cross-language date parsing ambiguity, providers and servers should prefer Unix timestamp in seconds for `lastModified` / `sseLastModified` when possible.
@@ -276,7 +276,7 @@ refreshConnection:
    - **Answer:** A mechanism to forward unknown typed messages to the provider via an events/hook interface could be valuable but is deferred to a future revision.
 
 6. **Should SSE metadata be transported via query parameters or custom headers?**
-   - **Answer:** Query params are used as the single transport mechanism for all SDK types. Custom headers were considered but rejected because non-safelisted headers trigger CORS preflight `OPTIONS` requests in browsers, adding a round-trip on every SSE-triggered re-fetch. Query params also make the SSE origin of the metadata explicit, distinguishing `sseEtag`/`sseLastModified` from standard HTTP conditional request headers (`If-None-Match` / `If-Modified-Since`).
+   - **Answer:** Query params are used as the single transport mechanism for all SDK types. Custom headers were considered but rejected because non-safelisted headers require expanding `Access-Control-Allow-Headers` in CORS configuration, and introduce additional complexity for browser-based SDKs. Query params also make the SSE origin of the metadata explicit, distinguishing `sseEtag`/`sseLastModified` from standard HTTP conditional request headers (`If-None-Match` / `If-Modified-Since`).
 
 7. **What security requirements should apply to tokenized SSE URLs?**
    - **Answer:** Providers must not log or persist SSE URLs as they may contain auth tokens or channel credentials. Further requirements around token lifetime and rotation are left to vendor implementations.
