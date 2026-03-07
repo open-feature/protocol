@@ -26,7 +26,7 @@ The persisted entry should include:
 - the bulk evaluation payload
 - the associated `ETag`, if one was returned
 - a stable derived cache key for determining whether the entry applies to the current provider instance, such as a hash derived from the `targetingKey`, auth token, and other inputs that affect the returned evaluation
-- the time the entry was written
+- the time the entry was written, which can be used for diagnostics and optional implementation-specific staleness policies
 
 Providers may store this as a single fixed local record, for example under a runtime-appropriate key such as `ofrepLocalCache`, and replace that record on each successful refresh.
 In that model, the stored value should contain the persisted bulk evaluation together with the derived cache-key hash, rather than storing raw `targetingKey` and auth token values on disk.
@@ -58,9 +58,11 @@ During initialization, a provider should:
 
 1. Attempt to load a matching persisted bulk evaluation from local storage.
 2. Attempt the normal `/ofrep/v1/evaluate/flags` request.
-3. If the request succeeds, populate the in-memory cache and update the persisted entry.
-4. If the request cannot complete because the client is offline or the network is temporarily unavailable, and a matching persisted entry exists, populate the in-memory cache from that persisted entry and continue operating from it.
-5. If no matching persisted entry exists, preserve the existing initialization failure behavior.
+3. If the request succeeds, populate the in-memory cache from the response and update the persisted entry.
+4. If the request cannot complete because the client is offline, the network is temporarily unavailable, or the server is temporarily unavailable, such as a `5xx` response:
+   - If a matching persisted entry exists, populate the in-memory cache from that persisted entry and continue operating from it.
+   - If no matching persisted entry exists, preserve the existing initialization failure behavior.
+5. If the request fails for authorization, invalid requests, or other responses that indicate a configuration or protocol problem, preserve the existing initialization failure behavior.
 
 ```mermaid
 sequenceDiagram
@@ -100,8 +102,8 @@ Providers should only reuse a persisted evaluation when it matches the current s
 At minimum, this includes a matching derived cache key based on the current `targetingKey` and auth token.
 Implementations may include additional inputs in the cache key when they affect the returned evaluation.
 
-Fallback to persisted data is intended for offline or transient network failures.
-Providers should not silently fall back to persisted data for authorization failures, invalid requests, or other server responses that indicate a configuration or protocol problem.
+Fallback to persisted data is intended for offline, transient network failures, or temporary server unavailability such as `5xx` responses.
+Providers should not silently fall back to persisted data for authorization failures, invalid requests, or other responses that indicate a configuration or protocol problem.
 
 When connectivity returns, the provider should resume its normal refresh behavior.
 If an `ETag` was stored with the persisted entry, the provider should use it with `If-None-Match` when revalidating the bulk evaluation.
@@ -141,11 +143,3 @@ For static-context providers, especially web and mobile providers, persistence i
 - Providers should avoid persisting raw `targetingKey` and auth token values when a derived cache key is sufficient for matching
 - Providers should clear or replace persisted entries when the `targetingKey` or auth token changes, such as on logout or user switch
 - SDK documentation should describe that offline fallback uses the last successful bulk evaluation and may therefore serve stale values until connectivity returns
-
-## Open Question
-
-Should providers fall back to persisted data only when the client is offline or the network is temporarily unavailable, or should they also fall back for:
-
-- authorization failures
-- invalid requests
-- other server responses that indicate a configuration or protocol problem
