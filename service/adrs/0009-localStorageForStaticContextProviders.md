@@ -1,4 +1,4 @@
-# 9. Persist static-context evaluations in local storage by default for web and mobile providers
+# 9. Persist static-context evaluations in local storage by default
 
 Date: 2026-03-06
 
@@ -9,28 +9,47 @@ Proposed
 ## Context
 
 OFREP static-context providers evaluate all flags in one request and then serve evaluations from a local cache.
-This model works well when the provider can reach the OFREP service during initialization and while polling for updates.
+Current implementations in `js-sdk-contrib`, `kotlin-sdk-contrib`, and `ofrep-swift-client-provider` keep that cache in memory only.
 
-Web and mobile applications often operate with intermittent connectivity.
-They are also frequently restarted, which means an in-memory cache is lost between sessions.
-Today, a client may have a previously successful bulk evaluation, but if it starts while offline it cannot reuse that evaluation unless the provider implementation persists it locally.
+Static-context providers are primarily web and mobile providers, where applications are often restarted or temporarily offline.
+In those cases, the last successful bulk evaluation is lost and applications fall back to errors or code defaults instead of continuing with a usable last-known state.
+This is also out of step with most vendor-provided web and mobile SDKs for the same class of provider, which persist flag state to local storage or on-device disk by default.
 
-This creates a poor experience for static-context providers in the environments they are primarily meant to support.
-An offline user may see feature state regress to errors or code defaults even though the application already had a usable last-known evaluation.
-
-OFREP already supports local cached evaluation, bulk evaluation, polling, and ETag-based revalidation.
-Persisting the last successful static-context evaluation extends the existing cache model to survive application restarts and temporary loss of connectivity.
+Persisting the last successful static-context evaluation would extend the existing cache model across restarts and temporary connectivity loss without requiring protocol changes.
 
 ## Decision
 
-Web and mobile OFREP providers that implement the static-context paradigm should persist their last successful bulk evaluation in local persistent storage by default.
+Static-context providers should persist their last successful bulk evaluation in local persistent storage by default.
 
 The persisted entry should include:
 
 - the bulk evaluation payload
 - the associated `ETag`, if one was returned
-- enough metadata to determine whether the entry applies to the current provider instance, such as the OFREP endpoint and the static evaluation context or a stable derived key for it
+- a stable derived cache key for determining whether the entry applies to the current provider instance, such as a hash derived from the `targetingKey`, auth token, and other inputs that affect the returned evaluation
 - the time the entry was written
+
+Providers may store this as a single fixed local record, for example under a runtime-appropriate key such as `ofrepLocalCache`, and replace that record on each successful refresh.
+In that model, the stored value should contain the persisted bulk evaluation together with the derived cache-key hash, rather than storing raw `targetingKey` and auth token values on disk.
+
+Example persisted value:
+
+```json
+{
+  "cacheKeyHash": "sha256:3e0f5c7d...",
+  "etag": "\"abc123\"",
+  "writtenAt": "2026-03-07T18:20:00Z",
+  "data": {
+    "flags": [
+      {
+        "key": "discount-banner",
+        "value": true,
+        "reason": "TARGETING_MATCH",
+        "variant": "enabled"
+      }
+    ]
+  }
+}
+```
 
 The provider should continue to use its in-memory cache for normal flag evaluation.
 Persistent local storage acts as the source used to bootstrap or recover that in-memory cache.
@@ -43,8 +62,42 @@ During initialization, a provider should:
 4. If the request cannot complete because the client is offline or the network is temporarily unavailable, and a matching persisted entry exists, populate the in-memory cache from that persisted entry and continue operating from it.
 5. If no matching persisted entry exists, preserve the existing initialization failure behavior.
 
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Provider as OFREP Provider
+    participant Storage as Local Storage
+    participant Server as OFREP Service
+
+    App->>Provider: initialize(targetingKey, auth token)
+    Provider->>Storage: load persisted evaluation
+    Storage-->>Provider: matching entry or none
+    Provider->>Server: POST /ofrep/v1/evaluate/flags
+    alt Request succeeds
+        Server-->>Provider: 200 OK (flags + ETag)
+        Provider->>Provider: Populate in-memory cache
+        Provider->>Storage: Persist flags + ETag
+    else Network unavailable
+        alt Matching persisted entry exists
+            Provider->>Provider: Populate in-memory cache from persisted entry
+        else No matching persisted entry
+            Provider-->>App: Initialization failure
+        end
+    end
+
+    Note over App,Server: Later, when connectivity returns
+    Provider->>Server: POST /ofrep/v1/evaluate/flags with If-None-Match
+    alt Flags changed
+        Server-->>Provider: 200 OK (new flags + ETag)
+        Provider->>Provider: Update in-memory cache
+        Provider->>Storage: Replace persisted entry
+    else Flags unchanged
+        Server-->>Provider: 304 Not Modified
+    end
+```
+
 Providers should only reuse a persisted evaluation when it matches the current static-context inputs.
-At minimum, this includes the target OFREP service and the evaluation context.
+At minimum, this includes a matching derived cache key based on the current `targetingKey` and auth token.
 Implementations may include additional inputs in the cache key when they affect the returned evaluation.
 
 Fallback to persisted data is intended for offline or transient network failures.
@@ -75,24 +128,24 @@ Providers should allow applications to disable the default persistence behavior 
 
 ## Alternatives Considered
 
-### Keep static-context caches in memory only
-
-This keeps provider implementations simpler, but it means offline startup cannot use a previously successful evaluation.
-That undermines a core advantage of static-context evaluation for web and mobile environments.
-
 ### Make persistence opt-in instead of the default
 
 This reduces default behavior changes, but it produces inconsistent offline behavior across provider implementations and requires every application to rediscover and enable the same capability.
-For web and mobile static-context providers, persistence is expected behavior rather than an exceptional optimization.
-
-### Add protocol-level support for offline snapshots
-
-This could standardize snapshot delivery more explicitly, but it would require protocol changes.
-Persisting the existing bulk evaluation response is sufficient for the current need and can be implemented entirely within providers.
+For static-context providers, especially web and mobile providers, persistence is expected behavior rather than an exceptional optimization.
 
 ## Implementation Notes
 
 - "Local storage" means a local persistent key-value store appropriate for the runtime, such as browser `localStorage` on the web or an equivalent mobile storage mechanism
 - Providers should version their persisted format so future schema changes can be handled safely
-- Providers should clear or replace persisted entries when the static context changes, such as on logout or user switch
+- Providers may use a single fixed storage key or filename and store the matching information inside the record as a derived cache-key hash
+- Providers should avoid persisting raw `targetingKey` and auth token values when a derived cache key is sufficient for matching
+- Providers should clear or replace persisted entries when the `targetingKey` or auth token changes, such as on logout or user switch
 - SDK documentation should describe that offline fallback uses the last successful bulk evaluation and may therefore serve stale values until connectivity returns
+
+## Open Question
+
+Should providers fall back to persisted data only when the client is offline or the network is temporarily unavailable, or should they also fall back for:
+
+- authorization failures
+- invalid requests
+- other server responses that indicate a configuration or protocol problem
