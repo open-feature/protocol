@@ -107,7 +107,7 @@ Providers should not silently fall back to persisted data for authorization fail
 When connectivity returns, the provider should resume its normal refresh behavior.
 If an `ETag` was stored with the persisted entry, the provider should use it with `If-None-Match` when revalidating the bulk evaluation.
 
-Providers should allow applications to disable the default persistence behavior or replace the storage backend when platform requirements or policy constraints require it.
+Providers should allow applications to disable the default persistence behavior, for example with a `disableLocalCache` option, or replace the storage backend when platform requirements or policy constraints require it.
 
 ## Consequences
 
@@ -141,6 +141,7 @@ For static-context providers, especially web and mobile providers, persistence i
 - Providers may use a single fixed storage key or filename and store the matching information inside the record as `cacheKeyHash`
 - `cacheKeyHash` should be `sha256(authToken + targetingKey)`
 - Providers should avoid persisting raw `targetingKey` and auth token values when `cacheKeyHash` is sufficient for matching
+- Providers should expose a `disableLocalCache` option to turn off persisted local storage
 - Providers should clear or replace persisted entries when the `targetingKey` or auth token changes, such as on logout or user switch
 - SDK documentation should describe that offline fallback uses the last successful bulk evaluation and may therefore serve stale values until connectivity returns
 
