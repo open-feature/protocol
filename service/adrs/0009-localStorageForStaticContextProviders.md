@@ -25,17 +25,17 @@ The persisted entry should include:
 
 - the bulk evaluation payload
 - the associated `ETag`, if one was returned
-- a `cacheKeyHash` equal to `sha256(authToken + targetingKey)`
+- a `cacheKeyHash` equal to `hash(targetingKey)`
 - the time the entry was written, which can be used for diagnostics and optional implementation-specific staleness policies
 
 Providers may store this as a single fixed local record, for example under a runtime-appropriate key such as `ofrepLocalCache`, and replace that record on each successful refresh.
-In that model, the stored value should contain the persisted bulk evaluation together with `cacheKeyHash = sha256(authToken + targetingKey)`, rather than storing raw `targetingKey` and auth token values on disk.
+In that model, the stored value should contain the persisted bulk evaluation together with `cacheKeyHash = hash(targetingKey)`, rather than storing raw `targetingKey` values on disk.
 
 Example persisted value:
 
 ```json
 {
-  "cacheKeyHash": "sha256(authToken + targetingKey)",
+  "cacheKeyHash": "hash(targetingKey)",
   "etag": "\"abc123\"",
   "writtenAt": "2026-03-07T18:20:00Z",
   "data": {
@@ -99,7 +99,7 @@ sequenceDiagram
 ```
 
 Providers should only reuse a persisted evaluation when it matches the current static-context inputs.
-This includes a matching `cacheKeyHash` equal to `sha256(authToken + targetingKey)`.
+This includes a matching `cacheKeyHash` equal to `hash(targetingKey)`.
 
 Fallback to persisted data is intended for offline, transient network failures, or temporary server unavailability such as `5xx` responses.
 Providers should not silently fall back to persisted data for authorization failures, invalid requests, or other responses that indicate a configuration or protocol problem.
@@ -139,10 +139,10 @@ For static-context providers, especially web and mobile providers, persistence i
 - "Local storage" means a local persistent key-value store appropriate for the runtime, such as browser `localStorage` on the web or an equivalent mobile storage mechanism
 - Providers should version their persisted format so future schema changes can be handled safely
 - Providers may use a single fixed storage key or filename and store the matching information inside the record as `cacheKeyHash`
-- `cacheKeyHash` should be `sha256(authToken + targetingKey)`
-- Providers should avoid persisting raw `targetingKey` and auth token values when `cacheKeyHash` is sufficient for matching
+- `cacheKeyHash` should be `hash(targetingKey)`
+- Providers should avoid persisting raw `targetingKey` values when `cacheKeyHash` is sufficient for matching
 - Providers should expose a `disableLocalCache` option to turn off persisted local storage
-- Providers should clear or replace persisted entries when the `targetingKey` or auth token changes, such as on logout or user switch
+- Providers should clear or replace persisted entries when the `targetingKey` changes, such as on logout or user switch
 - SDK documentation should describe that offline fallback uses the last successful bulk evaluation and may therefore serve stale values until connectivity returns
 
 ## Open Questions
