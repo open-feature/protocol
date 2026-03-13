@@ -102,7 +102,7 @@ Providers should only reuse a persisted evaluation when it matches the current s
 This includes a matching `cacheKeyHash` equal to `hash(targetingKey)`.
 
 Fallback to persisted data is intended for offline, transient network failures, or temporary server unavailability such as `5xx` responses.
-Providers should not silently fall back to persisted data for authorization failures, invalid requests, or other responses that indicate a configuration or protocol problem.
+Providers must not silently fall back to persisted data for authorization failures, invalid requests, or other responses that indicate a configuration or protocol problem.
 
 When connectivity returns, the provider should resume its normal refresh behavior.
 If an `ETag` was stored with the persisted entry, the provider should use it with `If-None-Match` when revalidating the bulk evaluation.
