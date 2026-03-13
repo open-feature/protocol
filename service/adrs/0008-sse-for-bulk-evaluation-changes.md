@@ -68,7 +68,7 @@ The `eventStreams` field is an array to support vendors whose infrastructure may
 
 ### SSE Event Format
 
-Events use the standard [SSE event format](https://html.spec.whatwg.org/multipage/server-sent-events.html) with a JSON `data` field:
+Events use the standard [SSE event format](https://html.spec.whatwg.org/multipage/server-sent-events.html). The SSE `data` field is a raw string (multiple `data:` lines are concatenated per the W3C spec) that providers must parse as JSON:
 
 ```
 id: evt-1234
