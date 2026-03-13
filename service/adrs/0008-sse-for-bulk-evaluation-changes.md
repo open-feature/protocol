@@ -28,13 +28,13 @@ Server-Sent Events (SSE) is a W3C standard that fits this use case well:
 
 ## Decision
 
-Add an optional `eventStreams` array to the bulk evaluation response (`POST /ofrep/v1/evaluate/flags`) and the single flag evaluation response (`POST /ofrep/v1/evaluate/flags/{flagKey}`). When present, it provides connection endpoints that the provider connects to for real-time flag change notifications.
+Add an optional `eventStreams` array to the bulk evaluation response (`POST /ofrep/v1/evaluate/flags`) and the single flag evaluation response (`POST /ofrep/v1/evaluate/flags/{key}`). When present, it provides connection endpoints that the provider connects to for real-time flag change notifications.
 
 SSE is used as a **notification-only** mechanism -- events signal the provider to re-fetch evaluations via the existing endpoints, rather than streaming full evaluation payloads. This keeps the SSE message format simple, reuses existing infrastructure, and avoids duplicating evaluation logic.
 
 ### Response Schema
 
-Add an optional `eventStreams` field to `bulkEvaluationSuccess` and `flagEvaluationSuccess`:
+Add an optional `eventStreams` field to `bulkEvaluationSuccess` and `serverEvaluationSuccess`:
 
 ```json
 {
@@ -62,7 +62,7 @@ Add an optional `eventStreams` field to `bulkEvaluationSuccess` and `flagEvaluat
 Each event stream object has:
 - `type` (string, required): The connection type. Currently `"sse"` is the only defined value. Providers must ignore entries with unknown types for forward compatibility, allowing new push mechanisms to be added without breaking existing clients.
 - `url` (string, required): The endpoint URL. The URL is opaque to the provider and may include authentication tokens, channel identifiers, or other vendor-specific query parameters. Implementations must treat this URL as sensitive -- it may contain auth tokens or channel credentials -- and must not log or persist the full URL including query string.
-- `inactivityDelaySec` (integer, optional): Seconds of client inactivity (e.g., browser tab hidden, mobile app backgrounded) after which the connection should be closed. The client must reconnect and perform a full unconditional re-fetch when activity resumes. Minimum value is `1`. If omitted, providers should default to `120` seconds.
+- `inactivityDelaySec` (integer, optional): Seconds of client inactivity (e.g., browser tab hidden, mobile app backgrounded) after which the connection should be closed. The client must reconnect and perform a full unconditional re-fetch when activity resumes. Minimum value is `1`. When determining the effective inactivity timeout, providers should use a client-side override if configured; otherwise use this value when present; otherwise default to `120` seconds.
 
 The `eventStreams` field is an array to support vendors whose infrastructure may require connections to multiple channels or endpoints (e.g., a global channel for environment-wide changes and a user-specific channel for targeted updates). Many SSE providers support multiple channels on a single URL, so the array will typically contain a single entry.
 
@@ -84,6 +84,8 @@ Event data fields:
 - `type` (string, required): The OFREP event type inside the JSON data payload. Providers must handle `refetchEvaluation` and must ignore unknown values for forward compatibility.
 - `etag` (string, optional): Latest flag configuration cache validation token sent over SSE metadata. If present, providers should include it as the `flagConfigEtag` query parameter on the re-fetch request.
 - `lastModified` (string | integer, optional): Latest flag configuration timestamp sent over SSE metadata. Supports either Unix timestamp in seconds (recommended) or a date string (ISO 8601 or HTTP-date). If present, providers should include it as the `flagConfigLastModified` query parameter on the re-fetch request.
+
+For all provider types, a `refetchEvaluation` event means that the underlying flag configuration has changed. How the provider responds may differ by provider model, but the event semantics are the same.
 
 SSE envelope fields:
 - `id` (string, recommended): Event identifier used by SSE clients for resume semantics via `Last-Event-ID`.
@@ -139,7 +141,7 @@ Provider implementation guidelines:
 1. After the initial bulk evaluation response, if `eventStreams` is present, the provider should connect to any entries with a known `type` (currently `"sse"`).
 2. On receiving a `refetchEvaluation` event, the provider must re-fetch flag evaluations from the bulk evaluation endpoint. If `etag` is present, it should be sent as `flagConfigEtag` query parameter. If `lastModified` is present, it should be sent as `flagConfigLastModified` query parameter. These query parameters should only be included for requests directly triggered by processing that SSE event.
    `lastModified` parsing should support Unix timestamp in seconds and date string formats.
-3. Providers must apply an inactivity timeout for SSE connections using an effective `inactivityDelaySec` value: if `inactivityDelaySec` is specified in the response, use that value; if it is omitted, assume a default of 120 seconds. After this effective inactivity period, the provider should close the SSE connection. On resumption, it must reconnect and immediately perform a full unconditional re-fetch -- without `If-None-Match`, `flagConfigEtag`, or `flagConfigLastModified` -- to ensure the cache reflects the current server state after an unknown period of inactivity.
+3. Providers must apply an inactivity timeout for SSE connections using an effective `inactivityDelaySec` value determined as follows: if a client-side override is configured, use that value; otherwise, if `inactivityDelaySec` is specified in the response, use that value; otherwise, assume a default of 120 seconds. After this effective inactivity period, the provider should close the SSE connection. On resumption, it must reconnect and immediately perform a full unconditional re-fetch -- without `If-None-Match`, `flagConfigEtag`, or `flagConfigLastModified` -- to ensure the cache reflects the current server state after an unknown period of inactivity.
 4. If the SSE connection fails or is unavailable, the provider must fall back to its configured change detection behavior: if polling is enabled, continue with polling; if polling is disabled, continue SSE reconnection attempts and rely on explicit refresh triggers such as `onContextChange`.
 5. Providers should implement reconnection with exponential backoff. The native `EventSource` API in browsers handles this automatically.
 6. When `onContextChange` is triggered, the provider re-fetches the bulk evaluation without SSE query metadata and updates its connections based on the new response:
@@ -151,7 +153,7 @@ Provider implementation guidelines:
 ### OpenAPI Schema Additions
 
 ```yaml
-# Add to /ofrep/v1/evaluate/flags and /ofrep/v1/evaluate/flags/{flagKey} POST parameters:
+# Add to /ofrep/v1/evaluate/flags and /ofrep/v1/evaluate/flags/{key} POST parameters:
 - in: query
   name: flagConfigEtag
   description: |
@@ -186,7 +188,7 @@ Provider implementation guidelines:
     httpDate:
       value: "Thu, 20 Feb 2026 21:28:18 GMT"
 
-# Add to bulkEvaluationSuccess.properties and flagEvaluationSuccess.properties:
+# Add to bulkEvaluationSuccess.properties and serverEvaluationSuccess.properties:
 eventStreams:
   type: array
   description: |
@@ -268,7 +270,7 @@ eventStream:
    - **Answer:** Providers should connect to all URLs and coalesce concurrent `refetchEvaluation` events via in-flight deduplication or a short debounce window. Minimum coalescing expectations are left to provider implementations for now.
 
 4. **Should `inactivityDelaySec` be server-provided or client-side configuration?**
-   - **Answer:** This ADR specifies `inactivityDelaySec` as server-provided, defaulting to 120 seconds when omitted. Providers may expose a client-side override, which should take precedence over the server-provided value.
+   - **Answer:** This ADR allows both. Providers use a client-side override when configured; otherwise they use the server-provided `inactivityDelaySec`; otherwise they default to 120 seconds.
 
 5. **Should non-`refetchEvaluation` SSE messages be forwarded to the provider?**
    - **Answer:** A mechanism to forward unknown typed messages to the provider via an events/hook interface could be valuable but is deferred to a future revision.
