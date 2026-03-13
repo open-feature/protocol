@@ -28,9 +28,6 @@ The persisted entry should include:
 - a `cacheKeyHash` equal to `hash(targetingKey)`
 - the time the entry was written, which can be used for diagnostics and optional implementation-specific staleness policies
 
-Providers may store this as a single fixed local record, for example under a runtime-appropriate key such as `ofrepLocalCache`, and replace that record on each successful refresh.
-In that model, the stored value should contain the persisted bulk evaluation together with `cacheKeyHash = hash(targetingKey)`, rather than storing raw `targetingKey` values on disk.
-
 Example persisted value:
 
 ```json
