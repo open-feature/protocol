@@ -8,9 +8,9 @@ Proposed
 
 ## Context
 
-OFREP currently relies exclusively on polling for flag change detection in client-side (static context) providers. As described in [ADR-0005](0005-polling-for-bulk-evaluation-changes.md), polling was chosen initially for simplicity, with the explicit expectation that additional change detection mechanisms would be added later.
+OFREP currently relies exclusively on polling for flag change detection. As described in [ADR-0005](0005-polling-for-bulk-evaluation-changes.md), polling was chosen initially for simplicity, with the explicit expectation that additional change detection mechanisms would be added later.
 
-This ADR focuses primarily on static-context providers (for example web and mobile SDK providers) that use bulk evaluation caching patterns. It does not introduce SSE requirements for dynamic-context providers that primarily use single-flag evaluations.
+This ADR defines SSE as a real-time change notification mechanism for OFREP. The primary use case is static-context providers (web and mobile) that use bulk evaluation caching, but SSE is also applicable to server-side providers using individual flag evaluations. A standalone endpoint for providers doing in-process local evaluation (outside of OFREP) is deferred to a follow-up ADR.
 
 Polling has known limitations:
 - There is no way to implement real-time flag updates
@@ -28,14 +28,13 @@ Server-Sent Events (SSE) is a W3C standard that fits this use case well:
 
 ## Decision
 
-Add an optional `refreshConnections` array to the bulk evaluation response (`POST /ofrep/v1/evaluate/flags`). When present, it provides connection endpoints that the provider connects to for real-time flag change notifications.
-This is primarily intended for static-context providers (for example web/mobile clients) that rely on bulk evaluations.
+Add an optional `eventStreams` array to the bulk evaluation response (`POST /ofrep/v1/evaluate/flags`) and the single flag evaluation response (`POST /ofrep/v1/evaluate/flags/{flagKey}`). When present, it provides connection endpoints that the provider connects to for real-time flag change notifications.
 
-SSE is used as a **notification-only** mechanism -- events signal the provider to re-fetch the bulk evaluation via the existing endpoint, rather than streaming full evaluation payloads. This keeps the SSE message format simple, reuses existing infrastructure, and avoids duplicating evaluation logic.
+SSE is used as a **notification-only** mechanism -- events signal the provider to re-fetch evaluations via the existing endpoints, rather than streaming full evaluation payloads. This keeps the SSE message format simple, reuses existing infrastructure, and avoids duplicating evaluation logic.
 
 ### Response Schema
 
-Add an optional `refreshConnections` field to `bulkEvaluationSuccess`:
+Add an optional `eventStreams` field to `bulkEvaluationSuccess` and `flagEvaluationSuccess`:
 
 ```json
 {
@@ -47,7 +46,7 @@ Add an optional `refreshConnections` field to `bulkEvaluationSuccess`:
       "variant": "enabled"
     }
   ],
-  "refreshConnections": [
+  "eventStreams": [
     {
       "type": "sse",
       "url": "https://sse.example.com/event-stream?channels=env_abc123_v1",
@@ -60,12 +59,12 @@ Add an optional `refreshConnections` field to `bulkEvaluationSuccess`:
 }
 ```
 
-Each refresh connection object has:
+Each event stream object has:
 - `type` (string, required): The connection type. Currently `"sse"` is the only defined value. Providers must ignore entries with unknown types for forward compatibility, allowing new push mechanisms to be added without breaking existing clients.
 - `url` (string, required): The endpoint URL. The URL is opaque to the provider and may include authentication tokens, channel identifiers, or other vendor-specific query parameters. Implementations must treat this URL as sensitive -- it may contain auth tokens or channel credentials -- and must not log or persist the full URL including query string.
 - `inactivityDelaySec` (integer, optional): Seconds of client inactivity (e.g., browser tab hidden, mobile app backgrounded) after which the connection should be closed. The client must reconnect and perform a full unconditional re-fetch when activity resumes. Minimum value is `1`. If omitted, providers should default to `120` seconds.
 
-The `refreshConnections` field is an array to support vendors whose infrastructure may require connections to multiple channels or endpoints (e.g., a global channel for environment-wide changes and a user-specific channel for targeted updates). Many SSE providers support multiple channels on a single URL, so the array will typically contain a single entry.
+The `eventStreams` field is an array to support vendors whose infrastructure may require connections to multiple channels or endpoints (e.g., a global channel for environment-wide changes and a user-specific channel for targeted updates). Many SSE providers support multiple channels on a single URL, so the array will typically contain a single entry.
 
 ### SSE Event Format
 
@@ -83,8 +82,8 @@ Providers must inspect `data.type` to determine behavior — not the SSE envelop
 
 Event data fields:
 - `type` (string, required): The OFREP event type inside the JSON data payload. Providers must handle `refetchEvaluation` and must ignore unknown values for forward compatibility.
-- `etag` (string, optional): Latest flag configuration cache validation token sent over SSE metadata. If present, providers should include it as the `sseEtag` query parameter on the re-fetch request.
-- `lastModified` (string | integer, optional): Latest flag configuration timestamp sent over SSE metadata. Supports either Unix timestamp in seconds (recommended) or a date string (ISO 8601 or HTTP-date). If present, providers should include it as the `sseLastModified` query parameter on the re-fetch request.
+- `etag` (string, optional): Latest flag configuration cache validation token sent over SSE metadata. If present, providers should include it as the `flagConfigEtag` query parameter on the re-fetch request.
+- `lastModified` (string | integer, optional): Latest flag configuration timestamp sent over SSE metadata. Supports either Unix timestamp in seconds (recommended) or a date string (ISO 8601 or HTTP-date). If present, providers should include it as the `flagConfigLastModified` query parameter on the re-fetch request.
 
 SSE envelope fields:
 - `id` (string, recommended): Event identifier used by SSE clients for resume semantics via `Last-Event-ID`.
@@ -95,12 +94,12 @@ Reconnection and replay behavior:
 - Providers must perform an immediate bulk re-fetch after reconnect, even when replay is supported, to guarantee cache correctness across implementations with different replay retention policies.
 
 Transporting SSE metadata to the bulk endpoint:
-- `sseEtag` and `sseLastModified` are SSE-trigger metadata, not standard HTTP conditional request validators for endpoint-level response caching semantics.
-- `sseEtag` and `sseLastModified` should only be sent when the re-fetch request is directly triggered by a received SSE message.
+- `flagConfigEtag` and `flagConfigLastModified` are SSE-trigger metadata, not standard HTTP conditional request validators for endpoint-level response caching semantics.
+- `flagConfigEtag` and `flagConfigLastModified` should only be sent when the re-fetch request is directly triggered by a received SSE message.
 - For browser-based SDKs, using query parameters instead of custom headers avoids introducing additional non-safelisted headers that would require expanding `Access-Control-Allow-Headers` and helps keep CORS configuration simpler.
 - The metadata originates from the SSE channel, so query parameters make the source and intent explicit.
 - This is particularly useful for implementations where the OFREP server validates internal cache state and storage freshness directly (for example, cache + object storage bindings) rather than forwarding conditional headers upstream.
-- To reduce cross-language date parsing ambiguity, providers and servers should prefer Unix timestamp in seconds for `lastModified` / `sseLastModified` when possible.
+- To reduce cross-language date parsing ambiguity, providers and servers should prefer Unix timestamp in seconds for `lastModified` / `flagConfigLastModified` when possible.
 
 ### Provider Behavior
 
@@ -111,13 +110,13 @@ sequenceDiagram
     participant SSE as SSE Endpoint
 
     Client->>Server: POST /ofrep/v1/evaluate/flags
-    Server-->>Client: 200 OK (flags + refreshConnections + ETag header)
+    Server-->>Client: 200 OK (flags + eventStreams + ETag header)
     Client->>Client: Cache flags, store ETag
     Client->>SSE: Connect to SSE URL(s)
 
     Note over SSE,Client: Real-time change notification
     SSE-->>Client: event: message (data.type=refetchEvaluation, etag, lastModified)
-    Client->>Server: POST /ofrep/v1/evaluate/flags?sseEtag=etag&sseLastModified=lastModified
+    Client->>Server: POST /ofrep/v1/evaluate/flags?flagConfigEtag=etag&flagConfigLastModified=lastModified
     alt Flags changed
         Server-->>Client: 200 OK (new flags + ETag)
         Client->>Client: Update cache, emit ConfigurationChanged
@@ -137,24 +136,24 @@ sequenceDiagram
 ```
 
 Provider implementation guidelines:
-1. After the initial bulk evaluation response, if `refreshConnections` is present, the provider should connect to any entries with a known `type` (currently `"sse"`).
-2. On receiving a `refetchEvaluation` event, the provider must re-fetch flag evaluations from the bulk evaluation endpoint. If `etag` is present, it should be sent as `sseEtag` query parameter. If `lastModified` is present, it should be sent as `sseLastModified` query parameter. These query parameters should only be included for requests directly triggered by processing that SSE event.
+1. After the initial bulk evaluation response, if `eventStreams` is present, the provider should connect to any entries with a known `type` (currently `"sse"`).
+2. On receiving a `refetchEvaluation` event, the provider must re-fetch flag evaluations from the bulk evaluation endpoint. If `etag` is present, it should be sent as `flagConfigEtag` query parameter. If `lastModified` is present, it should be sent as `flagConfigLastModified` query parameter. These query parameters should only be included for requests directly triggered by processing that SSE event.
    `lastModified` parsing should support Unix timestamp in seconds and date string formats.
-3. Providers must apply an inactivity timeout for SSE connections using an effective `inactivityDelaySec` value: if `inactivityDelaySec` is specified in the response, use that value; if it is omitted, assume a default of 120 seconds. After this effective inactivity period, the provider should close the SSE connection. On resumption, it must reconnect and immediately perform a full unconditional re-fetch -- without `If-None-Match`, `sseEtag`, or `sseLastModified` -- to ensure the cache reflects the current server state after an unknown period of inactivity.
+3. Providers must apply an inactivity timeout for SSE connections using an effective `inactivityDelaySec` value: if `inactivityDelaySec` is specified in the response, use that value; if it is omitted, assume a default of 120 seconds. After this effective inactivity period, the provider should close the SSE connection. On resumption, it must reconnect and immediately perform a full unconditional re-fetch -- without `If-None-Match`, `flagConfigEtag`, or `flagConfigLastModified` -- to ensure the cache reflects the current server state after an unknown period of inactivity.
 4. If the SSE connection fails or is unavailable, the provider must fall back to its configured change detection behavior: if polling is enabled, continue with polling; if polling is disabled, continue SSE reconnection attempts and rely on explicit refresh triggers such as `onContextChange`.
 5. Providers should implement reconnection with exponential backoff. The native `EventSource` API in browsers handles this automatically.
 6. When `onContextChange` is triggered, the provider re-fetches the bulk evaluation without SSE query metadata and updates its connections based on the new response:
-   - If `refreshConnections` is absent, close all existing connections and fall back to configured change detection behavior.
-   - If `refreshConnections` is present and the URL set is unchanged, existing connections may be reused.
-   - If `refreshConnections` is present and the URL set has changed, close existing connections then connect to the new URLs.
+   - If `eventStreams` is absent, close all existing connections and fall back to configured change detection behavior.
+   - If `eventStreams` is present and the URL set is unchanged, existing connections may be reused.
+   - If `eventStreams` is present and the URL set has changed, close existing connections then connect to the new URLs.
 7. Providers SHOULD coalesce concurrent `refetchEvaluation` events into a single re-fetch request (e.g., via in-flight deduplication or a short debounce window) to avoid amplifying load on the flag management system when multiple connections fire simultaneously.
 
 ### OpenAPI Schema Additions
 
 ```yaml
-# Add to /ofrep/v1/evaluate/flags POST parameters:
+# Add to /ofrep/v1/evaluate/flags and /ofrep/v1/evaluate/flags/{flagKey} POST parameters:
 - in: query
-  name: sseEtag
+  name: flagConfigEtag
   description: |
     Optional SSE-provided ETag metadata for SSE-triggered re-fetches. This is
     not a standard HTTP conditional request header; it is metadata for server-side
@@ -166,7 +165,7 @@ Provider implementation guidelines:
   example: "\"550e8400-e29b-41d4-a716-446655440000\""
 
 - in: query
-  name: sseLastModified
+  name: flagConfigLastModified
   description: |
     Optional SSE-provided last-modified metadata for SSE-triggered re-fetches.
     Supports Unix timestamp in seconds (recommended) or a date string (ISO 8601 /
@@ -187,21 +186,20 @@ Provider implementation guidelines:
     httpDate:
       value: "Thu, 20 Feb 2026 21:28:18 GMT"
 
-# Add to bulkEvaluationSuccess.properties:
-refreshConnections:
+# Add to bulkEvaluationSuccess.properties and flagEvaluationSuccess.properties:
+eventStreams:
   type: array
   description: |
-    Optional array of real-time change notification connections. This is primarily
-    intended for static-context providers (for example web/mobile providers) using
-    bulk evaluation caching patterns. When present, the provider should connect to
-    any entries with a known type and re-fetch flag evaluations when notified of
-    changes. If not present, the provider should continue using polling for change
-    detection. Entries with unknown types must be ignored for forward compatibility.
+    Optional array of real-time change notification connections. When present,
+    the provider should connect to any entries with a known type and re-fetch
+    flag evaluations when notified of changes. If not present, the provider
+    should continue using polling for change detection. Entries with unknown
+    types must be ignored for forward compatibility.
   items:
-    $ref: "#/components/schemas/refreshConnection"
+    $ref: "#/components/schemas/eventStream"
 
 # Add to components.schemas:
-refreshConnection:
+eventStream:
   description: |
     A real-time change notification connection endpoint. The `type` field
     identifies the push mechanism; currently only `sse` is defined. Providers
@@ -246,7 +244,7 @@ refreshConnection:
 - **Real-time flag updates**: Providers can receive flag change notifications immediately rather than waiting for the next poll interval
 - **Reduced server load**: Eliminates unnecessary polling requests when flags have not changed
 - **Vendor-agnostic**: The `url` field is opaque, allowing vendors to use any SSE infrastructure (hosted services like Ably/Pusher, self-hosted endpoints, CDN-based proxies)
-- **Backward compatible**: The `refreshConnections` field is fully optional -- servers that don't support it omit the field, providers that don't support it ignore the field and continue their configured change detection behavior
+- **Backward compatible**: The `eventStreams` field is fully optional -- servers that don't support it omit the field, providers that don't support it ignore the field and continue their configured change detection behavior
 - **Builds on existing infrastructure**: Uses the existing bulk evaluation endpoint for data transfer, keeping SSE as a lightweight notification layer
 
 ### Negative
@@ -276,7 +274,7 @@ refreshConnection:
    - **Answer:** A mechanism to forward unknown typed messages to the provider via an events/hook interface could be valuable but is deferred to a future revision.
 
 6. **Should SSE metadata be transported via query parameters or custom headers?**
-   - **Answer:** Query params are used as the single transport mechanism for all SDK types. Custom headers were considered but rejected because non-safelisted headers require expanding `Access-Control-Allow-Headers` in CORS configuration, and introduce additional complexity for browser-based SDKs. Query params also make the SSE origin of the metadata explicit, distinguishing `sseEtag`/`sseLastModified` from standard HTTP conditional request headers (`If-None-Match` / `If-Modified-Since`).
+   - **Answer:** Query params are used as the single transport mechanism for all SDK types. Custom headers were considered but rejected because non-safelisted headers require expanding `Access-Control-Allow-Headers` in CORS configuration, and introduce additional complexity for browser-based SDKs. Query params also make the SSE origin of the metadata explicit, distinguishing `flagConfigEtag`/`flagConfigLastModified` from standard HTTP conditional request headers (`If-None-Match` / `If-Modified-Since`).
 
 7. **What security requirements should apply to tokenized SSE URLs?**
    - **Answer:** Providers must not log or persist SSE URLs as they may contain auth tokens or channel credentials. Further requirements around token lifetime and rotation are left to vendor implementations.
@@ -284,8 +282,9 @@ refreshConnection:
 ## Implementation Notes
 
 - **Provider change detection configuration**: Providers should expose a `changeDetection` configuration option with the following values:
-  - `sse` *(default)*: Use SSE if the bulk evaluation response includes a `refreshConnections` entry with `type: "sse"`. On connection failure, providers MAY fall back to polling only when polling is enabled (for example, when a positive `pollInterval` is configured); otherwise, they SHOULD continue attempting SSE and rely on explicit refresh triggers. If no `refreshConnections` are present, polling is used (subject to the same polling configuration).
-  - `polling`: Ignore `refreshConnections` and rely solely on polling.
+  - `sse` *(default)*: Use SSE if the bulk evaluation response includes an `eventStreams` entry with `type: "sse"`. On connection failure, providers MAY fall back to polling only when polling is enabled (for example, when a positive `pollInterval` is configured); otherwise, they SHOULD continue attempting SSE and rely on explicit refresh triggers. If no `eventStreams` are present, polling is used (subject to the same polling configuration).
+  - `polling`: Ignore `eventStreams` and rely solely on polling.
   - `none`: Perform no background refresh; rely solely on explicit `onContextChange` calls.
 - **Existing SSE libraries**: The LaunchDarkly open-source SSE client libraries ([Java/Android](https://github.com/launchdarkly/okhttp-eventsource), [.NET](https://github.com/launchdarkly/dotnet-eventsource), [JavaScript](https://github.com/launchdarkly/js-eventsource), [Python](https://github.com/launchdarkly/python-eventsource), [Swift/iOS](https://github.com/launchdarkly/swift-eventsource)) are well-maintained and could be used by OFREP provider implementations. Browser environments can use the native `EventSource` API.
-- **Static context provider guideline update**: The [static context provider guideline](../../guideline/static-context-provider.md) would need a new section describing SSE connection management alongside the existing polling section.
+- **Provider guideline updates**: The [static context provider guideline](../../guideline/static-context-provider.md) would need a new section describing SSE connection management alongside the existing polling section. Server-side provider guidelines should also be updated to document SSE usage with single-flag evaluations.
+- **Standalone endpoint for local evaluation**: Providers doing in-process local evaluation (outside of OFREP) have no evaluation response to carry `eventStreams`. A standalone endpoint such as `GET /ofrep/v1/eventStreams` that returns just the event stream connection details is deferred to a follow-up ADR.
