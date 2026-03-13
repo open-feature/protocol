@@ -68,7 +68,7 @@ sequenceDiagram
     participant Storage as Local Storage
     participant Server as OFREP Service
 
-    App->>Provider: initialize(targetingKey, auth token)
+    App->>Provider: initialize(context)
     Provider->>Storage: load persisted evaluation
     Storage-->>Provider: matching entry or none
     Provider->>Server: POST /ofrep/v1/evaluate/flags
@@ -134,8 +134,6 @@ For static-context providers, especially web and mobile providers, persistence i
 
 - "Local storage" means a local persistent key-value store appropriate for the runtime, such as browser `localStorage` on the web or an equivalent mobile storage mechanism
 - Providers should version their persisted format so future schema changes can be handled safely
-- Providers may use a single fixed storage key or filename and store the matching information inside the record as `cacheKeyHash`
-- `cacheKeyHash` should be `hash(targetingKey)`
 - Providers should avoid persisting raw `targetingKey` values when `cacheKeyHash` is sufficient for matching
 - Providers should expose a `disableLocalCache` option to turn off persisted local storage
 - Providers should clear or replace persisted entries when the `targetingKey` changes, such as on logout or user switch
