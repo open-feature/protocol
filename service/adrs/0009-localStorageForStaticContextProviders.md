@@ -60,7 +60,7 @@ During initialization, a provider should:
 2. Attempt the normal `/ofrep/v1/evaluate/flags` request.
 3. If the request succeeds, populate the in-memory cache from the response and update the persisted entry.
 4. If the request cannot complete because the client is offline, the network is temporarily unavailable, or the server is temporarily unavailable, such as a `5xx` response:
-   - If a matching persisted entry exists, populate the in-memory cache from that persisted entry and continue operating from it.
+   - If a matching persisted entry exists, populate the in-memory cache from that persisted entry and continue operating from it. Evaluations served from the persisted entry should use `CACHED` as the evaluation reason.
    - If no matching persisted entry exists, preserve the existing initialization failure behavior.
 5. If the request fails for authorization, invalid requests, or other responses that indicate a configuration or protocol problem, preserve the existing initialization failure behavior.
 
@@ -147,5 +147,4 @@ For static-context providers, especially web and mobile providers, persistence i
 
 ## Open Questions
 
-1. Should providers fall back to persisted data only when the client is offline or the network is temporarily unavailable, or should they also fall back for authorization failures, invalid requests, or other server responses that indicate a configuration or protocol problem?
-2. Should providers also persist the full evaluation context used for the cached bulk evaluation, so that when falling back to persisted values they can override the current context with the cached context that produced those values?
+1. Should providers also persist the full evaluation context used for the cached bulk evaluation, so that when falling back to persisted values they can override the current context with the cached context that produced those values?
