@@ -123,7 +123,7 @@ Providers should allow applications to disable the default persistence behavior,
 
 - Providers become more complex because they must manage persistence, cache-key matching, and recovery flows
 - Persisted evaluations may become stale, so applications can continue using outdated flag values while offline
-- Persisting evaluation data introduces security and privacy considerations, especially if flag metadata or context-derived identifiers are sensitive
+- Persisting evaluation data on-device means flag values are stored in plaintext in platform-local storage, which may be accessible to other code running in the same origin (web) or on compromised devices (mobile)
 - Mobile platforms do not share a single storage API, so providers may need platform-specific defaults behind a common abstraction
 
 ## Alternatives Considered
