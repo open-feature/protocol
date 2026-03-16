@@ -54,40 +54,8 @@ paths:
           schema:
             type: string
           example: discount-banner
-        - in: query
-          name: flagConfigEtag
-          description: |
-            Optional ETag metadata provided by an event stream for change-triggered
-            re-fetches (see ADR-0008). This is not a standard HTTP conditional request
-            header; it is metadata for server-side cache validation and freshness
-            checks. It should only be included when the request is directly triggered
-            by a received change notification event.
-          schema:
-            type: string
-          required: false
-          example: '"550e8400-e29b-41d4-a716-446655440000"'
-        - in: query
-          name: flagConfigLastModified
-          description: |
-            Optional last-modified metadata provided by an event stream for
-            change-triggered re-fetches (see ADR-0008). Supports Unix timestamp in
-            seconds (recommended) or a date string (ISO 8601 / HTTP-date), and is
-            transported as query metadata rather than `If-Modified-Since`. It should
-            only be included when the request is directly triggered by a received
-            change notification event.
-          schema:
-            oneOf:
-              - type: integer
-                minimum: 0
-              - type: string
-          required: false
-          examples:
-            epochSeconds:
-              value: 1771622898
-            isoDate:
-              value: "2026-02-20T21:28:18Z"
-            httpDate:
-              value: "Thu, 20 Feb 2026 21:28:18 GMT"
+        - $ref: "#/components/parameters/flagConfigEtag"
+        - $ref: "#/components/parameters/flagConfigLastModified"
       requestBody:
         required: true
         description: Evaluation request containing the context for flag evaluation
@@ -185,40 +153,8 @@ paths:
             type: string
           required: false
           example: '"abc123xyz"'
-        - in: query
-          name: flagConfigEtag
-          description: |
-            Optional ETag metadata provided by an event stream for change-triggered
-            re-fetches (see ADR-0008). This is not a standard HTTP conditional request
-            header; it is metadata for server-side cache validation and freshness
-            checks. It should only be included when the request is directly triggered
-            by a received change notification event.
-          schema:
-            type: string
-          required: false
-          example: '"550e8400-e29b-41d4-a716-446655440000"'
-        - in: query
-          name: flagConfigLastModified
-          description: |
-            Optional last-modified metadata provided by an event stream for
-            change-triggered re-fetches (see ADR-0008). Supports Unix timestamp in
-            seconds (recommended) or a date string (ISO 8601 / HTTP-date), and is
-            transported as query metadata rather than `If-Modified-Since`. It should
-            only be included when the request is directly triggered by a received
-            change notification event.
-          schema:
-            oneOf:
-              - type: integer
-                minimum: 0
-              - type: string
-          required: false
-          examples:
-            epochSeconds:
-              value: 1771622898
-            isoDate:
-              value: "2026-02-20T21:28:18Z"
-            httpDate:
-              value: "Thu, 20 Feb 2026 21:28:18 GMT"
+        - $ref: "#/components/parameters/flagConfigEtag"
+        - $ref: "#/components/parameters/flagConfigLastModified"
       requestBody:
         required: true
         content:
@@ -344,6 +280,43 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
+  parameters:
+    flagConfigEtag:
+      in: query
+      name: flagConfigEtag
+      description: |
+        Optional ETag metadata provided by an event stream for change-triggered
+        re-fetches (see ADR-0008). This is not a standard HTTP conditional request
+        header; it is metadata for server-side cache validation and freshness
+        checks. It should only be included when the request is directly triggered
+        by a received change notification event.
+      schema:
+        type: string
+      required: false
+      example: '"550e8400-e29b-41d4-a716-446655440000"'
+    flagConfigLastModified:
+      in: query
+      name: flagConfigLastModified
+      description: |
+        Optional last-modified metadata provided by an event stream for
+        change-triggered re-fetches (see ADR-0008). Supports Unix timestamp in
+        seconds (recommended) or a date string (ISO 8601 / HTTP-date), and is
+        transported as query metadata rather than `If-Modified-Since`. It should
+        only be included when the request is directly triggered by a received
+        change notification event.
+      schema:
+        oneOf:
+          - type: integer
+            minimum: 0
+          - type: string
+      required: false
+      examples:
+        epochSeconds:
+          value: 1771622898
+        isoDate:
+          value: "2026-02-20T21:28:18Z"
+        httpDate:
+          value: "Thu, 20 Feb 2026 21:28:18 GMT"
   schemas:
     bulkEvaluationRequest:
       description: |
