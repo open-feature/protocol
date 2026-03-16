@@ -2,3 +2,6 @@ extends:
  - spectral:oas
 rules:
   oas3-valid-media-example: off
+  # Disabled until spectral supports OpenAPI 3.2.0
+  # See: https://github.com/stoplightio/spectral/issues/2910
+  oas3-schema: off
