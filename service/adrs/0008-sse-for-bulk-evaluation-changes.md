@@ -61,8 +61,11 @@ Add an optional `eventStreams` field to `bulkEvaluationSuccess` and `serverEvalu
 
 Each event stream object has:
 - `type` (string, required): The connection type. Currently `"sse"` is the only defined value. Providers must ignore entries with unknown types for forward compatibility, allowing new push mechanisms to be added without breaking existing clients.
-- `url` (string, required): The endpoint URL. The URL is opaque to the provider and may include authentication tokens, channel identifiers, or other vendor-specific query parameters. Implementations must treat this URL as sensitive -- it may contain auth tokens or channel credentials -- and must not log or persist the full URL including query string.
+- `url` (string, optional): The endpoint URL. This is the default representation and is opaque to the provider. It may include authentication tokens, channel identifiers, or other vendor-specific query parameters. Implementations must treat this URL as sensitive -- it may contain auth tokens or channel credentials -- and must not log or persist the full URL including query string.
+- `endpoint` (object, optional): Structured endpoint components for deployments that need to override the origin cleanly (for example, via a proxy) while preserving the request target. If present, it has `origin` and `requestUri` fields.
 - `inactivityDelaySec` (integer, optional): Seconds of client inactivity (e.g., browser tab hidden, mobile app backgrounded) after which the connection should be closed. The client must reconnect and perform a full unconditional re-fetch when activity resumes. Minimum value is `1`. When determining the effective inactivity timeout, providers should use a client-side override if configured; otherwise use this value when present; otherwise default to `120` seconds.
+
+Exactly one of `url` or `endpoint` must be provided. Providers should use `url` as-is when present. When `endpoint` is present, providers should construct the connection URL as `origin + requestUri`.
 
 The `eventStreams` field is an array to support vendors whose infrastructure may require connections to multiple channels or endpoints (e.g., a global channel for environment-wide changes and a user-specific channel for targeted updates). Many SSE providers support multiple channels on a single URL, so the array will typically contain a single entry.
 
@@ -209,7 +212,11 @@ eventStream:
   type: object
   required:
     - type
-    - url
+  oneOf:
+    - required:
+        - url
+    - required:
+        - endpoint
   properties:
     type:
       type: string
@@ -227,6 +234,27 @@ eventStream:
         channel identifiers, or other query parameters as needed by the
         vendor's infrastructure.
       example: "https://sse.example.com/event-stream?channels=env_abc123_v1"
+    endpoint:
+      type: object
+      required:
+        - origin
+        - requestUri
+      description: |
+        Structured endpoint components for deployments that need to override
+        the origin cleanly while preserving the request target. When present,
+        providers construct the connection URL as `origin + requestUri`.
+      properties:
+        origin:
+          type: string
+          format: uri
+          description: |
+            The scheme + host + optional port portion of the endpoint URL.
+          example: "https://sse.example.com"
+        requestUri:
+          type: string
+          description: |
+            The path + query portion of the endpoint URL.
+          example: "/event-stream?channels=env_abc123_v1"
     inactivityDelaySec:
       type: integer
       minimum: 1
