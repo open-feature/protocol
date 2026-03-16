@@ -215,8 +215,14 @@ eventStream:
   oneOf:
     - required:
         - url
+      not:
+        required:
+          - endpoint
     - required:
         - endpoint
+      not:
+        required:
+          - url
   properties:
     type:
       type: string
