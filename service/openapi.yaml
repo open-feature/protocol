@@ -418,8 +418,8 @@ components:
             flag change notifications. This is the default representation and
             is opaque to the provider. The URL may include authentication tokens,
             channel identifiers, or other query parameters as needed by the
-            vendor's infrastructure. Implementations should treat this value as
-            sensitive and should not log or persist the full URL including its
+            vendor's infrastructure. Implementations must treat this value as
+            sensitive and must not log or persist the full URL including its
             query string.
           example: "https://sse.example.com/event-stream?channels=env_abc123_v1"
         endpoint:
