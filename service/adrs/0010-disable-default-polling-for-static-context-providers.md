@@ -83,16 +83,6 @@ All re-fetch triggers (foreground, SSE push, context change, opt-in polling) sho
 - Providers must implement platform-specific foreground detection, adding complexity across iOS, Android, and web
 - Breaking change for existing applications that rely on the current default polling behavior to receive mid-session flag updates
 
-## Alternatives Considered
-
-### Keep default polling with a longer interval
-
-Increasing the default poll interval (e.g., to 5 minutes) reduces resource usage but still breaks sticky bucketing, just less frequently. It also doesn't address the fundamental mismatch with vendor SDK behavior.
-
-### Require SSE/streaming for real-time updates
-
-Making SSE a requirement rather than optional would be too complex for a baseline requirement. Many deployments may not have SSE infrastructure, and event-driven refresh (foreground + context change) provides a reasonable baseline without it.
-
 ## Implementation Notes
 
 - Foreground detection should be implemented behind a platform abstraction so it can be tested and swapped
