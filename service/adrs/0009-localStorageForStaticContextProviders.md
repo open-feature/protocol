@@ -187,3 +187,4 @@ Every major vendor SDK (LaunchDarkly, Statsig, DevCycle, Eppo) uses cache-first 
 ## Open Questions
 
 1. Should providers support caching evaluations for multiple targeting keys (like LaunchDarkly's `maxCachedContexts`), or only retain the most recent? Multi-context caching enables instant user switching on shared devices but increases storage usage.
+2. Should providers enforce a TTL on persisted entries (e.g. 30 days, similar to DevCycle's `configCacheTTL`)? A TTL would ensure stale caches are eventually purged, particularly in cases where the provider can no longer refresh from the server (e.g. persistent auth errors). If so, should the TTL be configurable?
