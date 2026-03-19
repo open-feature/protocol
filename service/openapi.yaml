@@ -454,8 +454,9 @@ components:
           example: "https://sse.example.com"
         requestUri:
           type: string
+          pattern: "^/"
           description: |
-            The path + query portion of the endpoint URL.
+            The path + query portion of the endpoint URL. Must start with `/`.
           example: "/event-stream?channels=env_abc123_v1"
     sseEvent:
       description: |
