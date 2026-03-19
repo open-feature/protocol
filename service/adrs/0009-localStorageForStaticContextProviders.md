@@ -70,7 +70,7 @@ During initialization, a provider should follow a cache-first approach:
    - Attempt the `/ofrep/v1/evaluate/flags` request and await the response.
    - If the request succeeds, populate the in-memory cache from the response, persist the entry, and return from `initialize()` (SDK emits `PROVIDER_READY`).
    - If the request fails with a transient or server error, preserve the existing initialization failure behavior (SDK emits `PROVIDER_ERROR`).
-   - If the request fails with an authorization or configuration error, preserve the existing initialization failure behavior with a fatal error code (SDK emits `PROVIDER_FATAL`).
+   - If the request fails with an authorization or configuration error, preserve the existing initialization failure behavior (SDK emits `PROVIDER_ERROR` with error code `PROVIDER_FATAL`).
 
 ```mermaid
 sequenceDiagram
@@ -107,7 +107,7 @@ sequenceDiagram
         else Transient error
             Provider-->>App: PROVIDER_ERROR
         else Auth/config error
-            Provider-->>App: PROVIDER_FATAL
+            Provider-->>App: PROVIDER_ERROR (fatal)
         end
     end
 
@@ -123,10 +123,26 @@ sequenceDiagram
     end
 ```
 
+### Why PROVIDER_READY and not PROVIDER_STALE on cache hit
+
+The spec defines `READY` as "the provider has been initialized, and is able to reliably resolve flag values" and `STALE` as "the provider's cached state is no longer valid and may not be up-to-date with the source of truth."
+
+On cache-hit startup, the provider emits `PROVIDER_READY` rather than `PROVIDER_STALE` for two reasons.
+First, at the moment of loading from cache, the provider does not yet know whether the cached values differ from the server. The values were correct as of the last successful evaluation and may still be current. The background refresh will determine whether they have changed.
+Second, `PROVIDER_STALE` would break the initialization contract. Applications and SDKs listen for `PROVIDER_READY` to begin flag evaluation. If the provider emitted `PROVIDER_STALE` instead, the SDK would not transition out of `NOT_READY`, and flag evaluations would short-circuit to defaults, which defeats the purpose of cache-first initialization.
+
+If the background refresh fails and the provider cannot confirm that cached values are current, the provider may emit `PROVIDER_STALE` at that point to signal that values may be out of date.
+
 ### Cache matching and fallback
 
 Providers should only reuse a persisted evaluation when it matches the current static-context inputs.
 This includes a matching `cacheKeyHash` equal to `hash(targetingKey)`.
+
+The cache key is intentionally derived from `targetingKey` alone rather than the full evaluation context.
+Static-context evaluations on the server can depend on context properties beyond `targetingKey`, so cached values may not reflect the current full context.
+However, hashing the full context is impractical for cache-first startup because many implementations set volatile context properties on initialization (e.g. `lastSessionTime`, `lastSeen`, `sessionId`) that would change the hash on every app restart, defeating the purpose of persistence.
+The accepted tradeoff is that the cache is keyed by stable user identity: a change in `targetingKey` (user switch, logout) invalidates the cache, but changes to other context properties do not.
+Those properties only affect evaluation when the server is reachable, at which point the provider refreshes anyway.
 
 When the provider has not initialized from cache (cache miss path), providers must not silently fall back to persisted data for authorization failures, invalid requests, or other responses that indicate a configuration or protocol problem.
 
@@ -159,6 +175,7 @@ Providers should allow applications to disable the default persistence behavior,
 - Applications may briefly see stale cached values before fresh values arrive, and should handle `PROVIDER_CONFIGURATION_CHANGED` events if they need to react to updates
 - Persisting evaluation data on-device means flag values are stored in plaintext in platform-local storage, which may be accessible to other code running in the same origin (web) or on compromised devices (mobile)
 - Mobile platforms do not share a single storage API, so providers may need platform-specific defaults behind a common abstraction
+- Existing OFREP static-context providers (`js-sdk-contrib`, `kotlin-sdk-contrib`, `ofrep-swift-client-provider`) all block `initialize()` on a network request today. Adopting cache-first initialization requires lifecycle and event model changes in each implementation, particularly the Kotlin provider which currently emits `PROVIDER_READY` on poll updates instead of `PROVIDER_CONFIGURATION_CHANGED`
 
 ## Alternatives Considered
 
