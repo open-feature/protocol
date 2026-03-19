@@ -47,15 +47,7 @@ Timer-based polling should remain available as an opt-in configuration for appli
 
 ### Foreground detection
 
-Providers should detect app foreground / page visibility using platform-appropriate mechanisms:
-
-| Platform | Mechanism |
-|----------|-----------|
-| iOS / tvOS | `UIApplication.willEnterForegroundNotification` |
-| macOS | `NSApplication.willBecomeActiveNotification` |
-| watchOS | `WKExtension.applicationWillEnterForegroundNotification` |
-| Android | `Application.ActivityLifecycleCallbacks.onActivityResumed` |
-| Web (browser) | `document.addEventListener('visibilitychange')` with `document.visibilityState === 'visible'` |
+Providers should detect app foreground / page visibility using platform-appropriate mechanisms and re-fetch bulk evaluations when the application becomes active.
 
 On foreground, if the provider has an active SSE connection, no re-fetch is needed as the SSE connection handles change detection. If the SSE connection was closed during inactivity (as described in [ADR-0008](0008-sse-for-bulk-evaluation-changes.md)), the provider should reconnect and perform a full unconditional re-fetch.
 
