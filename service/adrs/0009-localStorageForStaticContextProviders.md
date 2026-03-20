@@ -65,7 +65,7 @@ During initialization, a provider should follow a cache-first approach:
    - Attempt the `/ofrep/v1/evaluate/flags` request in the background.
    - If the background request succeeds, update the in-memory cache from the response, update the persisted entry, and emit `PROVIDER_CONFIGURATION_CHANGED`. Evaluations should switch to the server-provided reasons.
    - If the background request fails with a transient or server error (network unavailable, `5xx`), continue serving cached values and retry on the normal polling schedule.
-   - If the background request fails with an authorization or configuration error (`401`, `403`, `400`), surface the error via logging or provider error events but continue serving cached values for this session.
+   - If the background request fails with an authorization or configuration error (`401`, `403`, `400`), surface the error via logging or provider error events, continue serving cached values for the current session, and clear the persisted entry from local storage. This ensures the next cold start uses the cache-miss path, making the auth or configuration error immediately visible rather than silently booting from increasingly stale data.
 3. **If no matching persisted entry exists (cache miss):**
    - Attempt the `/ofrep/v1/evaluate/flags` request and await the response.
    - If the request succeeds, populate the in-memory cache from the response, persist the entry, and return from `initialize()` (SDK emits `PROVIDER_READY`).
@@ -94,6 +94,7 @@ sequenceDiagram
         else Transient error
             Note over Provider: Continue serving cached values
         else Auth/config error
+            Provider->>Storage: Clear persisted entry
             Note over Provider: Surface error, continue serving cached values
         end
     else Cache miss (no matching entry)
@@ -146,7 +147,7 @@ Those properties only affect evaluation when the server is reachable, at which p
 
 When the provider has not initialized from cache (cache miss path), providers must not silently fall back to persisted data for authorization failures, invalid requests, or other responses that indicate a configuration or protocol problem.
 
-When the provider has already initialized from cache (cache hit path), authorization or configuration errors from the background refresh should be surfaced via logging or provider error events, but the provider should continue serving cached values for the current session rather than revoking a working state.
+When the provider has already initialized from cache (cache hit path), authorization or configuration errors from the background refresh should be surfaced via logging or provider error events. The provider should continue serving cached values for the current session rather than revoking a working state, but should clear the persisted entry from local storage so the next cold start follows the cache-miss path and the error is immediately visible.
 
 ### Refresh and revalidation
 
