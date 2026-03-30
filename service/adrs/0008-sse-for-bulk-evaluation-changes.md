@@ -189,7 +189,7 @@ Provider implementation guidelines:
     isoDate:
       value: "2026-02-20T21:28:18Z"
     httpDate:
-      value: "Thu, 20 Feb 2026 21:28:18 GMT"
+      value: "Fri, 20 Feb 2026 21:28:18 GMT"
 
 # Add to bulkEvaluationSuccess.properties:
 eventStreams:
