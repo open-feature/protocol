@@ -200,6 +200,8 @@ Every major vendor SDK (LaunchDarkly, Statsig, DevCycle, Eppo) uses cache-first 
 - Providers should clear or replace persisted entries when the `targetingKey` changes, such as on logout or user switch
 - The `initialize()` function should return immediately when a matching cached entry exists, allowing the SDK to emit `PROVIDER_READY` from cache
 - Providers should emit `PROVIDER_CONFIGURATION_CHANGED` when fresh values replace cached values after a background refresh
+- If `onContextChanged()` is called while a background refresh is still in-flight, the provider should cancel or discard the in-flight request. The context-change evaluation supersedes it and should be the authoritative write to the persisted entry
+- On the first cold start (no persisted entry), `initialize()` blocks on the network request as normal. Cache-first initialization only applies once a successful evaluation has been persisted
 - SDK documentation should note that initial evaluations may return cached values (with `CACHED` reason) that are subsequently updated when fresh values arrive
 
 ## Open Questions
