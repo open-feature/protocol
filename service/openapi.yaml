@@ -149,7 +149,7 @@ paths:
           schema:
             type: string
           required: false
-          example: '"abc123xyz"'
+          example: abc123xyz
         - $ref: "#/components/parameters/flagConfigEtag"
         - $ref: "#/components/parameters/flagConfigLastModified"
       requestBody:
@@ -175,7 +175,7 @@ paths:
                 Entity tag (ETag) representing the current state of all flags. Clients should 
                 include this value in subsequent requests using the `If-None-Match` header for 
                 cache validation.
-              example: '"abc123xyz"'
+              example: abc123xyz
           content:
             application/json:
               schema:
@@ -267,7 +267,7 @@ components:
       schema:
         type: string
       required: false
-      example: '"550e8400-e29b-41d4-a716-446655440000"'
+      example: 550e8400-e29b-41d4-a716-446655440000
     flagConfigLastModified:
       in: query
       name: flagConfigLastModified
@@ -495,7 +495,7 @@ components:
             Latest flag configuration cache validation token. If present,
             providers should include it as the `flagConfigEtag` query parameter
             on the re-fetch request.
-          example: '"abc123"'
+          example: abc123
         lastModified:
           description: |
             Latest flag configuration timestamp. Supports Unix timestamp in
