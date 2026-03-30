@@ -1,4 +1,4 @@
-# 8. Server-Sent Events (SSE) for bulk evaluation changes
+# 8. Server-Sent Events (SSE) for bulk evaluation changes (client-side providers)
 
 Date: 2026-02-20
 
@@ -10,7 +10,7 @@ Proposed
 
 OFREP currently relies exclusively on polling for flag change detection. As described in [ADR-0005](0005-polling-for-bulk-evaluation-changes.md), polling was chosen initially for simplicity, with the explicit expectation that additional change detection mechanisms would be added later.
 
-This ADR defines SSE as a real-time change notification mechanism for OFREP. The primary use case is static-context providers (web and mobile) that use bulk evaluation caching, but SSE is also applicable to server-side providers using individual flag evaluations. A standalone endpoint for providers doing in-process local evaluation (outside of OFREP) is deferred to a follow-up ADR.
+This ADR defines SSE as a real-time change notification mechanism for OFREP, scoped to client-side providers that use bulk evaluation caching. SSE support for server-side providers using individual flag evaluations and for providers doing in-process local evaluation (outside of OFREP) is deferred to a follow-up ADR.
 
 Polling has known limitations:
 - There is no way to implement real-time flag updates
@@ -28,13 +28,13 @@ Server-Sent Events (SSE) is a W3C standard that fits this use case well:
 
 ## Decision
 
-Add an optional `eventStreams` array to the bulk evaluation response (`POST /ofrep/v1/evaluate/flags`) and the single flag evaluation response (`POST /ofrep/v1/evaluate/flags/{key}`). When present, it provides connection endpoints that the provider connects to for real-time flag change notifications.
+Add an optional `eventStreams` array to the bulk evaluation response (`POST /ofrep/v1/evaluate/flags`). When present, it provides connection endpoints that the provider connects to for real-time flag change notifications.
 
 SSE is used as a **notification-only** mechanism -- events signal the provider to re-fetch evaluations via the existing endpoints, rather than streaming full evaluation payloads. This keeps the SSE message format simple, reuses existing infrastructure, and avoids duplicating evaluation logic.
 
 ### Response Schema
 
-Add an optional `eventStreams` field to `bulkEvaluationSuccess` and `serverEvaluationSuccess`:
+Add an optional `eventStreams` field to `bulkEvaluationSuccess`:
 
 ```json
 {
@@ -156,7 +156,7 @@ Provider implementation guidelines:
 ### OpenAPI Schema Additions
 
 ```yaml
-# Add to /ofrep/v1/evaluate/flags and /ofrep/v1/evaluate/flags/{key} POST parameters:
+# Add to /ofrep/v1/evaluate/flags POST parameters:
 - in: query
   name: flagConfigEtag
   description: |
@@ -191,7 +191,7 @@ Provider implementation guidelines:
     httpDate:
       value: "Thu, 20 Feb 2026 21:28:18 GMT"
 
-# Add to bulkEvaluationSuccess.properties and serverEvaluationSuccess.properties:
+# Add to bulkEvaluationSuccess.properties:
 eventStreams:
   type: array
   description: |
@@ -322,5 +322,5 @@ eventStream:
   - `polling`: Ignore `eventStreams` and rely solely on polling.
   - `none`: Perform no background refresh; rely solely on explicit `onContextChange` calls.
 - **Existing SSE libraries**: The LaunchDarkly open-source SSE client libraries ([Java/Android](https://github.com/launchdarkly/okhttp-eventsource), [.NET](https://github.com/launchdarkly/dotnet-eventsource), [JavaScript](https://github.com/launchdarkly/js-eventsource), [Python](https://github.com/launchdarkly/python-eventsource), [Swift/iOS](https://github.com/launchdarkly/swift-eventsource)) are well-maintained and could be used by OFREP provider implementations. Browser environments can use the native `EventSource` API.
-- **Provider guideline updates**: The [static context provider guideline](../../guideline/static-context-provider.md) would need a new section describing SSE connection management alongside the existing polling section. Server-side provider guidelines should also be updated to document SSE usage with single-flag evaluations.
+- **Provider guideline updates**: The [static context provider guideline](../../guideline/static-context-provider.md) would need a new section describing SSE connection management alongside the existing polling section.
 - **Standalone endpoint for local evaluation**: Providers doing in-process local evaluation (outside of OFREP) have no evaluation response to carry `eventStreams`. A standalone endpoint such as `GET /ofrep/v1/eventStreams` that returns just the event stream connection details is deferred to a follow-up ADR.

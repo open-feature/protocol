@@ -57,8 +57,6 @@ paths:
           schema:
             type: string
           example: discount-banner
-        - $ref: "#/components/parameters/flagConfigEtag"
-        - $ref: "#/components/parameters/flagConfigLastModified"
       requestBody:
         required: true
         description: Evaluation request containing the context for flag evaluation
@@ -84,10 +82,6 @@ paths:
                 value: true
                 reason: TARGETING_MATCH
                 variant: enabled
-                eventStreams:
-                  - type: sse
-                    url: https://sse.example.com/event-stream?channels=env_abc123_v1
-                    inactivityDelaySec: 120
         "400":
           description: Bad evaluation request. The request is malformed or contains invalid context.
           content:
@@ -370,18 +364,6 @@ components:
     serverEvaluationSuccess:
       allOf:
         - $ref: "#/components/schemas/evaluationSuccess"
-        - type: object
-          properties:
-            eventStreams:
-              type: array
-              description: |
-                Optional array of real-time change notification connections. When present,
-                the provider should connect to any entries with a known type and re-fetch
-                flag evaluations when notified of changes. If not present, the provider
-                should continue using polling for change detection. Entries with unknown
-                types must be ignored for forward compatibility.
-              items:
-                $ref: "#/components/schemas/eventStream"
     eventStream:
       description: |
         A real-time change notification connection endpoint. The `type` field
