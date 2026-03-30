@@ -1,4 +1,4 @@
-# 8. Server-Sent Events (SSE) for bulk evaluation changes (client-side providers)
+# 8. Server-Sent Events (SSE) for bulk evaluation changes — client-side providers
 
 Date: 2026-02-20
 
