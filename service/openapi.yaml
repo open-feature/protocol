@@ -409,6 +409,7 @@ components:
         inactivityDelaySec:
           type: integer
           minimum: 1
+          default: 120
           description: |
             Number of seconds of client inactivity (e.g., browser tab hidden,
             mobile app backgrounded) after which the connection should be closed
