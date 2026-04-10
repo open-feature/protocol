@@ -62,10 +62,10 @@ Add an optional `eventStreams` field to `bulkEvaluationSuccess`:
 Each event stream object has:
 - `type` (string, required): The connection type. Currently `"sse"` is the only defined value. Providers must ignore entries with unknown types for forward compatibility, allowing new push mechanisms to be added without breaking existing clients.
 - `url` (string, optional): The endpoint URL. This is the default representation and is opaque to the provider. It may include authentication tokens, channel identifiers, or other vendor-specific query parameters. Implementations must treat this URL as sensitive -- it may contain auth tokens or channel credentials -- and must not log or persist the full URL including query string.
-- `endpoint` (object, optional): Structured endpoint components for deployments that need to override the origin cleanly (for example, via a proxy) while preserving the request target. If present, it has `origin` and `requestUri` fields.
+- `endpoint` (object, optional): Structured endpoint components for deployments that need to override the origin cleanly (for example, via a proxy) while preserving the request target. It has a required `requestUri` field and an optional `origin` field. If `origin` is absent, providers should use their configured OFREP base URL origin.
 - `inactivityDelaySec` (integer, optional): Seconds of client inactivity (e.g., browser tab hidden, mobile app backgrounded) after which the connection should be closed. The client must reconnect and perform a full unconditional re-fetch when activity resumes. Minimum value is `1`. When determining the effective inactivity timeout, providers should use a client-side override if configured; otherwise use this value when present; otherwise default to `120` seconds.
 
-Exactly one of `url` or `endpoint` must be provided. Providers should use `url` as-is when present. When `endpoint` is present, providers should construct the connection URL as `origin + requestUri`.
+Exactly one of `url` or `endpoint` must be provided. Providers should use `url` as-is when present. When `endpoint` is present, providers should construct the connection URL as `origin + requestUri`, where `origin` defaults to the provider's configured OFREP base URL if not specified.
 
 The `eventStreams` field is an array to support vendors whose infrastructure may require connections to multiple channels or endpoints (e.g., a global channel for environment-wide changes and a user-specific channel for targeted updates). Many SSE providers support multiple channels on a single URL, so the array will typically contain a single entry.
 
@@ -243,18 +243,20 @@ eventStream:
     endpoint:
       type: object
       required:
-        - origin
         - requestUri
       description: |
         Structured endpoint components for deployments that need to override
         the origin cleanly while preserving the request target. When present,
-        providers construct the connection URL as `origin + requestUri`.
+        providers construct the connection URL as `origin + requestUri`. If
+        `origin` is absent, providers should use their configured OFREP base
+        URL origin.
       properties:
         origin:
           type: string
           format: uri
           description: |
             The scheme + host + optional port portion of the endpoint URL.
+            If absent, providers should use their configured OFREP base URL origin.
           example: "https://sse.example.com"
         requestUri:
           type: string
