@@ -1,4 +1,4 @@
-# 8. Server-Sent Events (SSE) for bulk evaluation changes — client-side providers
+# 8. Server-Sent Events (SSE) for bulk evaluation changes — static-context providers
 
 Date: 2026-02-20
 
@@ -10,7 +10,7 @@ Proposed
 
 OFREP currently relies exclusively on polling for flag change detection. As described in [ADR-0005](0005-polling-for-bulk-evaluation-changes.md), polling was chosen initially for simplicity, with the explicit expectation that additional change detection mechanisms would be added later.
 
-This ADR defines SSE as a real-time change notification mechanism for OFREP, scoped to client-side providers that use bulk evaluation caching. SSE support for server-side providers using individual flag evaluations and for providers doing in-process local evaluation (outside of OFREP) is deferred to a follow-up ADR.
+This ADR defines SSE as a real-time change notification mechanism for OFREP, scoped to static-context providers that use bulk evaluation caching. SSE support for dynamic-context providers using individual flag evaluations and for providers doing in-process local evaluation (outside of OFREP) is deferred to a follow-up ADR.
 
 Polling has known limitations:
 - There is no way to implement real-time flag updates
