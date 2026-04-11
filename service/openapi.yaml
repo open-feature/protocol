@@ -254,6 +254,27 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
+  pathItems:
+    eventStreamConnection:
+      get:
+        tags: [Event Streams]
+        summary: SSE Flag Configuration Change Notification
+        description: |
+          Describes the Server-Sent Events (SSE) stream that providers receive from
+          the URLs specified in `eventStreams`. Events signal that the underlying flag
+          configuration has changed and the provider should re-fetch evaluations.
+
+          This path item documents the event format only; the actual SSE endpoint URLs
+          are opaque and vendor-provided via the `eventStreams` field in evaluation
+          responses. Providers should connect to the URL returned in `eventStreams`
+          rather than constructing a URL from this path item.
+        responses:
+          "200":
+            description: SSE event stream connection established successfully
+            content:
+              text/event-stream:
+                itemSchema:
+                  $ref: "#/components/schemas/sseEvent"
   parameters:
     flagConfigEtag:
       in: query
@@ -700,24 +721,4 @@ components:
     flagMetadataDescription:
       description: |
         Arbitrary metadata for the flag, useful for telemetry and documentary purposes.
-webhooks:
-  flagConfigChanged:
-    post:
-      summary: SSE Flag Configuration Change Notification
-      description: |
-        Describes the Server-Sent Events (SSE) stream that providers receive from
-        the URLs specified in `eventStreams`. Events signal that the underlying flag
-        configuration has changed and the provider should re-fetch evaluations.
 
-        This webhook documents the event format only; the actual SSE endpoint URLs
-        are opaque and vendor-provided via the `eventStreams` field in evaluation responses.
-      tags: [Event Streams]
-      requestBody:
-        description: SSE event stream carrying flag configuration change notifications
-        content:
-          text/event-stream:
-            itemSchema:
-              $ref: "#/components/schemas/sseEvent"
-      responses:
-        "200":
-          description: SSE connection established successfully
