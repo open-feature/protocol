@@ -418,18 +418,20 @@ components:
     eventStreamEndpoint:
       type: object
       required:
-        - origin
         - requestUri
       description: |
         Structured endpoint components for deployments that need to override
         the origin cleanly while preserving the request target. When present,
-        providers construct the connection URL as `origin + requestUri`.
+        providers construct the connection URL as `origin + requestUri`. If
+        `origin` is absent, providers should use their configured OFREP base
+        URL origin.
       properties:
         origin:
           type: string
           format: uri
           description: |
             The scheme + host + optional port portion of the endpoint URL.
+            If absent, providers should use their configured OFREP base URL origin.
           example: "https://sse.example.com"
         requestUri:
           type: string
