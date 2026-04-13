@@ -212,3 +212,5 @@ Every major vendor SDK (LaunchDarkly, Statsig, DevCycle, Eppo) uses cache-first 
 ## Open Questions
 
 1. Should providers support caching evaluations for multiple targeting keys (like LaunchDarkly's `maxCachedContexts`), or only retain the most recent? Multi-context caching enables instant user switching on shared devices but increases storage usage.
+2. Should the storage key include a namespace to prevent collisions when multiple OFREP providers share the same local storage origin?
+   - **Answer:** Yes. Providers should support an optional `cacheKeyPrefix` configuration option. When provided, the cache key becomes `hash(cacheKeyPrefix + targetingKey)` instead of `hash(targetingKey)`. The prefix value is left to the application author (e.g., the OFREP base URL, a project or auth token, or any other distinguishing string). The default (no prefix) keeps the single-provider case simple. See the `cacheKeyPrefix` section in the Decision above.
