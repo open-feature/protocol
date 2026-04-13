@@ -1,4 +1,4 @@
-openapi: 3.2.0
+openapi: 3.1.0
 servers:
   - url: /
 info:
@@ -28,9 +28,6 @@ tags:
     description: |
       **Required**: Core APIs to implement to support OFREP.  
       *This is the minimum set of APIs required for a flag management system to be OFREP compatible.*
-  - name: Event Streams
-    description: |
-      **Optional**: Real-time change notification mechanisms for flag configuration updates (see ADR-0008).
 
 paths:
   /ofrep/v1/evaluate/flags/{key}:
@@ -254,27 +251,6 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
-  pathItems:
-    eventStreamConnection:
-      get:
-        tags: [Event Streams]
-        summary: SSE Flag Configuration Change Notification
-        description: |
-          Describes the Server-Sent Events (SSE) stream that providers receive from
-          the URLs specified in `eventStreams`. Events signal that the underlying flag
-          configuration has changed and the provider should re-fetch evaluations.
-
-          This path item documents the event format only; the actual SSE endpoint URLs
-          are opaque and vendor-provided via the `eventStreams` field in evaluation
-          responses. Providers should connect to the URL returned in `eventStreams`
-          rather than constructing a URL from this path item.
-        responses:
-          "200":
-            description: SSE event stream connection established successfully
-            content:
-              text/event-stream:
-                itemSchema:
-                  $ref: "#/components/schemas/sseEvent"
   parameters:
     flagConfigEtag:
       in: query
