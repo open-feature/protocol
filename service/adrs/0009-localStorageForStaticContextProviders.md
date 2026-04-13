@@ -28,10 +28,10 @@ The persisted entry should include:
 
 - the bulk evaluation payload
 - the associated `ETag`, if one was returned
-- a `cacheKeyHash` equal to `hash(targetingKey)`
+- a `cacheKeyHash` equal to `hash(targetingKey)`, or `hash(cacheKeyPrefix + targetingKey)` when a `cacheKeyPrefix` is configured
 - the time the entry was written, which can be used for diagnostics and optional implementation-specific staleness policies
 
-The key used to read and write this entry in the platform’s local key-value store should incorporate the `cacheKeyHash` (and any implementation-defined suffix for versioning or multiple entries). Implementations should also support an optional **persisted-cache key prefix** (configuration option) that namespaces that storage key when an application runs **multiple provider instances** that share the same storage partition (for example, two OFREP providers on the same web origin). Without a prefix, those instances could collide on the same storage slot; with distinct prefixes, each instance keeps an isolated persisted evaluation.
+Providers should support an optional `cacheKeyPrefix` configuration option. When provided, the prefix is included in the cache key hash: `hash(cacheKeyPrefix + targetingKey)`. This prevents collisions when multiple OFREP provider instances share the same local storage partition (e.g., two providers on the same web origin pointing at different OFREP servers). The prefix value is left to the application author; it could be the OFREP base URL, a project or auth token, or any other distinguishing string. When no prefix is configured, the cache key defaults to `hash(targetingKey)`.
 
 Example persisted value:
 
@@ -60,7 +60,7 @@ Persistent local storage acts as the source used to bootstrap that in-memory cac
 
 During initialization, a provider should follow a cache-first approach:
 
-1. Attempt to load a matching persisted bulk evaluation from local storage (matching `cacheKeyHash`, and the same persisted-cache key prefix the instance was configured with, if any).
+1. Attempt to load a matching persisted bulk evaluation from local storage (matching `cacheKeyHash`).
 2. **If a matching persisted entry exists (cache hit):**
    - Populate the in-memory cache from the persisted entry immediately.
    - Return from `initialize()` so the SDK can emit `PROVIDER_READY`. Evaluations served from the persisted entry should use `CACHED` as the evaluation reason.
@@ -138,7 +138,7 @@ If the background refresh fails and the provider cannot confirm that cached valu
 ### Cache matching and fallback
 
 Providers should only reuse a persisted evaluation when it matches the current static-context inputs.
-This includes a matching cacheKeyHash equal to hash(targetingKey). The lookup must also use the persisted-cache key prefix provided in the initialization options.
+This includes a matching `cacheKeyHash` equal to `hash(targetingKey)`, or `hash(cacheKeyPrefix + targetingKey)` when a `cacheKeyPrefix` is configured.
 
 The cache key is intentionally derived from `targetingKey` alone rather than the full evaluation context.
 Static-context evaluations on the server can depend on context properties beyond `targetingKey`, so cached values may not reflect the current full context.
@@ -159,7 +159,7 @@ If an `ETag` was stored with the persisted entry, the provider should use it wit
 
 Providers should allow applications to disable the default persistence behavior, for example with a `disableLocalCache` option, or replace the storage backend when platform requirements or policy constraints require it.
 
-When applications configure **more than one** static-context provider against the same underlying storage (same browser origin, shared app container, and so on), providers should expose an optional **persisted-cache key prefix** (name may vary by SDK, for example `persistedCacheKeyPrefix` or `localCacheKeyPrefix`). Applications set a distinct prefix per provider instance so persisted entries are namespaced and instances do not load or overwrite each other’s bulk evaluations.
+When applications configure more than one static-context provider against the same underlying storage (same browser origin, shared app container, etc.), each provider instance should be configured with a distinct `cacheKeyPrefix` so persisted entries are namespaced and instances do not load or overwrite each other's bulk evaluations.
 
 ## Consequences
 
@@ -200,7 +200,7 @@ Every major vendor SDK (LaunchDarkly, Statsig, DevCycle, Eppo) uses cache-first 
 - Providers should version their persisted format so future schema changes can be handled safely
 - Providers should avoid persisting raw `targetingKey` values when `cacheKeyHash` is sufficient for matching
 - Providers should expose a `disableLocalCache` option to turn off persisted local storage
-- Providers should expose an optional persisted-cache key prefix (or equivalent) so multiple provider instances sharing one storage partition do not collide on the same storage key
+- Providers should expose an optional `cacheKeyPrefix` configuration option so multiple provider instances sharing one storage partition do not collide on the same storage key
 - Providers should clear or replace persisted entries when the `targetingKey` changes, such as on logout or user switch
 - The `initialize()` function should return immediately when a matching cached entry exists, allowing the SDK to emit `PROVIDER_READY` from cache
 - Providers should emit `PROVIDER_CONFIGURATION_CHANGED` when fresh values replace cached values after a background refresh
@@ -212,4 +212,3 @@ Every major vendor SDK (LaunchDarkly, Statsig, DevCycle, Eppo) uses cache-first 
 ## Open Questions
 
 1. Should providers support caching evaluations for multiple targeting keys (like LaunchDarkly's `maxCachedContexts`), or only retain the most recent? Multi-context caching enables instant user switching on shared devices but increases storage usage.
-2. Should providers support an optional `cacheKeyPrefix` configuration to prevent collisions when multiple OFREP providers share the same local storage origin? When provided, the cache key would become `hash(cacheKeyPrefix + targetingKey)` instead of `hash(targetingKey)`. This gives flexibility for different use cases: the prefix could be the OFREP base URL (multiple servers), a project or auth token (multi-tenant on the same server), or any other string the app author chooses. The default (no prefix) keeps the single-provider case simple.
