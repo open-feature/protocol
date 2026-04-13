@@ -31,6 +31,8 @@ The persisted entry should include:
 - a `cacheKeyHash` equal to `hash(targetingKey)`
 - the time the entry was written, which can be used for diagnostics and optional implementation-specific staleness policies
 
+The key used to read and write this entry in the platform’s local key-value store should incorporate the `cacheKeyHash` (and any implementation-defined suffix for versioning or multiple entries). Implementations should also support an optional **persisted-cache key prefix** (configuration option) that namespaces that storage key when an application runs **multiple provider instances** that share the same storage partition (for example, two OFREP providers on the same web origin). Without a prefix, those instances could collide on the same storage slot; with distinct prefixes, each instance keeps an isolated persisted evaluation.
+
 Example persisted value:
 
 ```json
@@ -58,7 +60,7 @@ Persistent local storage acts as the source used to bootstrap that in-memory cac
 
 During initialization, a provider should follow a cache-first approach:
 
-1. Attempt to load a matching persisted bulk evaluation from local storage (matching `cacheKeyHash`).
+1. Attempt to load a matching persisted bulk evaluation from local storage (matching `cacheKeyHash`, and the same persisted-cache key prefix the instance was configured with, if any).
 2. **If a matching persisted entry exists (cache hit):**
    - Populate the in-memory cache from the persisted entry immediately.
    - Return from `initialize()` so the SDK can emit `PROVIDER_READY`. Evaluations served from the persisted entry should use `CACHED` as the evaluation reason.
@@ -137,7 +139,7 @@ If the background refresh fails and the provider cannot confirm that cached valu
 ### Cache matching and fallback
 
 Providers should only reuse a persisted evaluation when it matches the current static-context inputs.
-This includes a matching `cacheKeyHash` equal to `hash(targetingKey)`.
+This includes a matching cacheKeyHash equal to hash(targetingKey). The lookup must also use the persisted-cache key prefix provided in the initialization options.
 
 The cache key is intentionally derived from `targetingKey` alone rather than the full evaluation context.
 Static-context evaluations on the server can depend on context properties beyond `targetingKey`, so cached values may not reflect the current full context.
@@ -157,6 +159,8 @@ If an `ETag` was stored with the persisted entry, the provider should use it wit
 ### Configuration
 
 Providers should allow applications to disable the default persistence behavior, for example with a `disableLocalCache` option, or replace the storage backend when platform requirements or policy constraints require it.
+
+When applications configure **more than one** static-context provider against the same underlying storage (same browser origin, shared app container, and so on), providers should expose an optional **persisted-cache key prefix** (name may vary by SDK, for example `persistedCacheKeyPrefix` or `localCacheKeyPrefix`). Applications set a distinct prefix per provider instance so persisted entries are namespaced and instances do not load or overwrite each other’s bulk evaluations.
 
 ## Consequences
 
@@ -197,6 +201,7 @@ Every major vendor SDK (LaunchDarkly, Statsig, DevCycle, Eppo) uses cache-first 
 - Providers should version their persisted format so future schema changes can be handled safely
 - Providers should avoid persisting raw `targetingKey` values when `cacheKeyHash` is sufficient for matching
 - Providers should expose a `disableLocalCache` option to turn off persisted local storage
+- Providers should expose an optional persisted-cache key prefix (or equivalent) so multiple provider instances sharing one storage partition do not collide on the same storage key
 - Providers should clear or replace persisted entries when the `targetingKey` changes, such as on logout or user switch
 - The `initialize()` function should return immediately when a matching cached entry exists, allowing the SDK to emit `PROVIDER_READY` from cache
 - Providers should emit `PROVIDER_CONFIGURATION_CHANGED` when fresh values replace cached values after a background refresh
@@ -208,4 +213,3 @@ Every major vendor SDK (LaunchDarkly, Statsig, DevCycle, Eppo) uses cache-first 
 
 1. Should providers support caching evaluations for multiple targeting keys (like LaunchDarkly's `maxCachedContexts`), or only retain the most recent? Multi-context caching enables instant user switching on shared devices but increases storage usage.
 2. Should providers enforce a TTL on persisted entries (e.g. 30 days, similar to DevCycle's `configCacheTTL`)? A TTL would ensure stale caches are eventually purged, particularly in cases where the provider can no longer refresh from the server (e.g. persistent auth errors). If so, should the TTL be configurable?
-3. Should the storage key include a namespace to prevent collisions when multiple OFREP providers share the same local storage origin (e.g. different backends on the same web origin)? In practice most applications use a single provider, so real-world collisions are unlikely. One option is to namespace using a hash of the auth token, since it is already environment- and project-specific and effectively distinguishes one provider configuration from another.
