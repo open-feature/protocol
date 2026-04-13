@@ -86,7 +86,7 @@ Providers must inspect `data.type` to determine behavior — not the SSE envelop
 Event data fields:
 - `type` (string, required): The OFREP event type inside the JSON data payload. Providers must handle `refetchEvaluation` and must ignore unknown values for forward compatibility.
 - `etag` (string, optional): Latest flag configuration cache validation token sent over SSE metadata. If present, providers should include it as the `flagConfigEtag` query parameter on the re-fetch request.
-- `lastModified` (string | integer, optional): Latest flag configuration timestamp sent over SSE metadata. Supports either Unix timestamp in seconds (recommended) or a date string (ISO 8601 or HTTP-date). If present, providers should include it as the `flagConfigLastModified` query parameter on the re-fetch request.
+- `lastModified` (string | integer, optional): Latest flag configuration timestamp sent over SSE metadata. Supports either Unix timestamp in seconds (recommended) or an ISO 8601 date-time string. If present, providers should include it as the `flagConfigLastModified` query parameter on the re-fetch request.
 
 For all provider types, a `refetchEvaluation` event means that the underlying flag configuration has changed. How the provider responds may differ by provider model, but the event semantics are the same.
 
@@ -173,8 +173,8 @@ Provider implementation guidelines:
   name: flagConfigLastModified
   description: |
     Optional SSE-provided last-modified metadata for SSE-triggered re-fetches.
-    Supports Unix timestamp in seconds (recommended) or a date string (ISO 8601 /
-    HTTP-date), and is transported as query metadata rather than
+    Supports Unix timestamp in seconds (recommended) or an ISO 8601 date-time
+    string, and is transported as query metadata rather than
     `If-Modified-Since`. It should only be included when the request is directly
     triggered by a received SSE message.
   schema:
@@ -182,14 +182,13 @@ Provider implementation guidelines:
       - type: integer
         minimum: 0
       - type: string
+        format: date-time
   required: false
   examples:
     epochSeconds:
       value: 1771622898
     isoDate:
       value: "2026-02-20T21:28:18Z"
-    httpDate:
-      value: "Fri, 20 Feb 2026 21:28:18 GMT"
 
 # Add to bulkEvaluationSuccess.properties:
 eventStreams:

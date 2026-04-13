@@ -295,7 +295,7 @@ components:
       description: |
         Optional last-modified metadata provided by an event stream for
         change-triggered re-fetches (see ADR-0008). Supports Unix timestamp in
-        seconds (recommended) or a date string (ISO 8601 / HTTP-date), and is
+        seconds (recommended) or an ISO 8601 date-time string, and is
         transported as query metadata rather than `If-Modified-Since`. It should
         only be included when the request is directly triggered by a received
         change notification event.
@@ -304,14 +304,13 @@ components:
           - type: integer
             minimum: 0
           - type: string
+            format: date-time
       required: false
       examples:
         epochSeconds:
           value: 1771622898
         isoDate:
           value: "2026-02-20T21:28:18Z"
-        httpDate:
-          value: "Fri, 20 Feb 2026 21:28:18 GMT"
   schemas:
     bulkEvaluationRequest:
       description: |
@@ -523,13 +522,14 @@ components:
         lastModified:
           description: |
             Latest flag configuration timestamp. Supports Unix timestamp in
-            seconds (recommended) or a date string (ISO 8601 or HTTP-date).
+            seconds (recommended) or an ISO 8601 date-time string.
             If present, providers should include it as the `flagConfigLastModified`
             query parameter on the re-fetch request.
           oneOf:
             - type: integer
               minimum: 0
             - type: string
+              format: date-time
           example: 1771622898
     evaluationSuccess:
       description: |
