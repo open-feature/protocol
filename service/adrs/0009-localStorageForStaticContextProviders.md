@@ -67,7 +67,7 @@ During initialization, a provider should follow a cache-first approach:
    - Attempt the `/ofrep/v1/evaluate/flags` request in the background.
    - If the background request succeeds, update the in-memory cache from the response, update the persisted entry, and emit `PROVIDER_CONFIGURATION_CHANGED`. Evaluations should switch to the server-provided reasons.
    - If the background request fails with a transient or server error (network unavailable, `5xx`), continue serving cached values and retry on the normal polling schedule.
-   - If the background request fails with an authorization or configuration error (`401`, `403`, `400`), surface the error via logging or provider error events, continue serving cached values for the current session, and clear the persisted entry from local storage. This ensures the next cold start uses the cache-miss path, making the auth or configuration error immediately visible rather than silently booting from increasingly stale data.
+   - If the background request fails with an authorization or configuration error (`401`, `403`, `400`), surface the error via logging or provider error events and continue serving cached values for the current session. The persisted entry should not be cleared; the cache TTL is responsible for eventual expiry. This ensures that subsequent cold starts can still bootstrap from cached values while the error is investigated, rather than immediately degrading to defaults.
 3. **If no matching persisted entry exists (cache miss):**
    - Attempt the `/ofrep/v1/evaluate/flags` request and await the response.
    - If the request succeeds, populate the in-memory cache from the response, persist the entry, and return from `initialize()` (SDK emits `PROVIDER_READY`).
@@ -96,7 +96,6 @@ sequenceDiagram
         else Transient error
             Note over Provider: Continue serving cached values
         else Auth/config error
-            Provider->>Storage: Clear persisted entry
             Note over Provider: Surface error, continue serving cached values
         end
     else Cache miss (no matching entry)
@@ -149,7 +148,7 @@ Those properties only affect evaluation when the server is reachable, at which p
 
 When the provider has not initialized from cache (cache miss path), providers must not silently fall back to persisted data for authorization failures, invalid requests, or other responses that indicate a configuration or protocol problem.
 
-When the provider has already initialized from cache (cache hit path), authorization or configuration errors from the background refresh should be surfaced via logging or provider error events. The provider should continue serving cached values for the current session rather than revoking a working state, but should clear the persisted entry from local storage so the next cold start follows the cache-miss path and the error is immediately visible.
+When the provider has already initialized from cache (cache hit path), authorization or configuration errors from the background refresh should be surfaced via logging or provider error events. The provider should continue serving cached values for the current session rather than revoking a working state. The persisted entry should not be cleared on auth or config errors; the cache TTL is responsible for eventual expiry. This avoids degrading subsequent cold starts to defaults while the error is investigated.
 
 ### Refresh and revalidation
 
@@ -208,8 +207,9 @@ Every major vendor SDK (LaunchDarkly, Statsig, DevCycle, Eppo) uses cache-first 
 - If `onContextChanged()` is called while a background refresh is still in-flight, the provider should cancel or discard the in-flight request. The context-change evaluation supersedes it and should be the authoritative write to the persisted entry
 - On the first cold start (no persisted entry), `initialize()` blocks on the network request as normal. Cache-first initialization only applies once a successful evaluation has been persisted
 - SDK documentation should note that initial evaluations may return cached values (with `CACHED` reason) that are subsequently updated when fresh values arrive
+- Providers should enforce a configurable TTL on persisted entries to ensure stale caches are eventually purged, particularly in cases where the provider can no longer refresh from the server (e.g. persistent auth errors). Since auth and config errors do not clear the persisted cache, the TTL is the mechanism that prevents indefinitely stale data. DevCycle uses a 30-day default (`configCacheTTL`) as a reference.
 
 ## Open Questions
 
 1. Should providers support caching evaluations for multiple targeting keys (like LaunchDarkly's `maxCachedContexts`), or only retain the most recent? Multi-context caching enables instant user switching on shared devices but increases storage usage.
-2. Should providers enforce a TTL on persisted entries (e.g. 30 days, similar to DevCycle's `configCacheTTL`)? A TTL would ensure stale caches are eventually purged, particularly in cases where the provider can no longer refresh from the server (e.g. persistent auth errors). If so, should the TTL be configurable?
+2. Should the storage key include a namespace to prevent collisions when multiple OFREP providers share the same local storage origin (e.g. different backends on the same web origin)? In practice most applications use a single provider, so real-world collisions are unlikely. One option is to namespace using a hash of the auth token, since it is already environment- and project-specific and effectively distinguishes one provider configuration from another.
