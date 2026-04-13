@@ -37,6 +37,7 @@ Example persisted value:
 
 ```json
 {
+  "version": 1,
   "cacheKeyHash": "hash(targetingKey)",
   "etag": "\"abc123\"",
   "writtenAt": "2026-03-07T18:20:00Z",
