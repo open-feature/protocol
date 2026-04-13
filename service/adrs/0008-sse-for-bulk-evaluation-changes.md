@@ -1,4 +1,4 @@
-# 8. Server-Sent Events (SSE) for bulk evaluation changes
+# 8. Server-Sent Events (SSE) for bulk evaluation changes — static-context providers
 
 Date: 2026-02-20
 
@@ -10,7 +10,7 @@ Proposed
 
 OFREP currently relies exclusively on polling for flag change detection. As described in [ADR-0005](0005-polling-for-bulk-evaluation-changes.md), polling was chosen initially for simplicity, with the explicit expectation that additional change detection mechanisms would be added later.
 
-This ADR defines SSE as a real-time change notification mechanism for OFREP. The primary use case is static-context providers (web and mobile) that use bulk evaluation caching, but SSE is also applicable to server-side providers using individual flag evaluations. A standalone endpoint for providers doing in-process local evaluation (outside of OFREP) is deferred to a follow-up ADR.
+This ADR defines SSE as a real-time change notification mechanism for OFREP, scoped to static-context providers that use bulk evaluation caching. SSE support for dynamic-context providers using individual flag evaluations and for providers doing in-process local evaluation (outside of OFREP) is deferred to a follow-up ADR.
 
 Polling has known limitations:
 - There is no way to implement real-time flag updates
@@ -28,13 +28,13 @@ Server-Sent Events (SSE) is a W3C standard that fits this use case well:
 
 ## Decision
 
-Add an optional `eventStreams` array to the bulk evaluation response (`POST /ofrep/v1/evaluate/flags`) and the single flag evaluation response (`POST /ofrep/v1/evaluate/flags/{key}`). When present, it provides connection endpoints that the provider connects to for real-time flag change notifications.
+Add an optional `eventStreams` array to the bulk evaluation response (`POST /ofrep/v1/evaluate/flags`). When present, it provides connection endpoints that the provider connects to for real-time flag change notifications.
 
 SSE is used as a **notification-only** mechanism -- events signal the provider to re-fetch evaluations via the existing endpoints, rather than streaming full evaluation payloads. This keeps the SSE message format simple, reuses existing infrastructure, and avoids duplicating evaluation logic.
 
 ### Response Schema
 
-Add an optional `eventStreams` field to `bulkEvaluationSuccess` and `serverEvaluationSuccess`:
+Add an optional `eventStreams` field to `bulkEvaluationSuccess`:
 
 ```json
 {
@@ -62,10 +62,10 @@ Add an optional `eventStreams` field to `bulkEvaluationSuccess` and `serverEvalu
 Each event stream object has:
 - `type` (string, required): The connection type. Currently `"sse"` is the only defined value. Providers must ignore entries with unknown types for forward compatibility, allowing new push mechanisms to be added without breaking existing clients.
 - `url` (string, optional): The endpoint URL. This is the default representation and is opaque to the provider. It may include authentication tokens, channel identifiers, or other vendor-specific query parameters. Implementations must treat this URL as sensitive -- it may contain auth tokens or channel credentials -- and must not log or persist the full URL including query string.
-- `endpoint` (object, optional): Structured endpoint components for deployments that need to override the origin cleanly (for example, via a proxy) while preserving the request target. If present, it has `origin` and `requestUri` fields.
+- `endpoint` (object, optional): Structured endpoint components for deployments that need to override the origin cleanly (for example, via a proxy) while preserving the request target. It has a required `requestUri` field and an optional `origin` field. If `origin` is absent, providers should use their configured OFREP base URL origin.
 - `inactivityDelaySec` (integer, optional): Seconds of client inactivity (e.g., browser tab hidden, mobile app backgrounded) after which the connection should be closed. The client must reconnect and perform a full unconditional re-fetch when activity resumes. Minimum value is `1`. When determining the effective inactivity timeout, providers should use a client-side override if configured; otherwise use this value when present; otherwise default to `120` seconds.
 
-Exactly one of `url` or `endpoint` must be provided. Providers should use `url` as-is when present. When `endpoint` is present, providers should construct the connection URL as `origin + requestUri`.
+Exactly one of `url` or `endpoint` must be provided. Providers should use `url` as-is when present. When `endpoint` is present, providers should construct the connection URL as `origin + requestUri`, where `origin` defaults to the provider's configured OFREP base URL if not specified.
 
 The `eventStreams` field is an array to support vendors whose infrastructure may require connections to multiple channels or endpoints (e.g., a global channel for environment-wide changes and a user-specific channel for targeted updates). Many SSE providers support multiple channels on a single URL, so the array will typically contain a single entry.
 
@@ -86,7 +86,7 @@ Providers must inspect `data.type` to determine behavior — not the SSE envelop
 Event data fields:
 - `type` (string, required): The OFREP event type inside the JSON data payload. Providers must handle `refetchEvaluation` and must ignore unknown values for forward compatibility.
 - `etag` (string, optional): Latest flag configuration cache validation token sent over SSE metadata. If present, providers should include it as the `flagConfigEtag` query parameter on the re-fetch request.
-- `lastModified` (string | integer, optional): Latest flag configuration timestamp sent over SSE metadata. Supports either Unix timestamp in seconds (recommended) or a date string (ISO 8601 or HTTP-date). If present, providers should include it as the `flagConfigLastModified` query parameter on the re-fetch request.
+- `lastModified` (string | integer, optional): Latest flag configuration timestamp sent over SSE metadata. Supports either Unix timestamp in seconds (recommended) or an ISO 8601 date-time string. If present, providers should include it as the `flagConfigLastModified` query parameter on the re-fetch request.
 
 For all provider types, a `refetchEvaluation` event means that the underlying flag configuration has changed. How the provider responds may differ by provider model, but the event semantics are the same.
 
@@ -156,7 +156,7 @@ Provider implementation guidelines:
 ### OpenAPI Schema Additions
 
 ```yaml
-# Add to /ofrep/v1/evaluate/flags and /ofrep/v1/evaluate/flags/{key} POST parameters:
+# Add to /ofrep/v1/evaluate/flags POST parameters:
 - in: query
   name: flagConfigEtag
   description: |
@@ -173,8 +173,8 @@ Provider implementation guidelines:
   name: flagConfigLastModified
   description: |
     Optional SSE-provided last-modified metadata for SSE-triggered re-fetches.
-    Supports Unix timestamp in seconds (recommended) or a date string (ISO 8601 /
-    HTTP-date), and is transported as query metadata rather than
+    Supports Unix timestamp in seconds (recommended) or an ISO 8601 date-time
+    string, and is transported as query metadata rather than
     `If-Modified-Since`. It should only be included when the request is directly
     triggered by a received SSE message.
   schema:
@@ -182,16 +182,15 @@ Provider implementation guidelines:
       - type: integer
         minimum: 0
       - type: string
+        format: date-time
   required: false
   examples:
     epochSeconds:
       value: 1771622898
     isoDate:
       value: "2026-02-20T21:28:18Z"
-    httpDate:
-      value: "Thu, 20 Feb 2026 21:28:18 GMT"
 
-# Add to bulkEvaluationSuccess.properties and serverEvaluationSuccess.properties:
+# Add to bulkEvaluationSuccess.properties:
 eventStreams:
   type: array
   description: |
@@ -243,18 +242,20 @@ eventStream:
     endpoint:
       type: object
       required:
-        - origin
         - requestUri
       description: |
         Structured endpoint components for deployments that need to override
         the origin cleanly while preserving the request target. When present,
-        providers construct the connection URL as `origin + requestUri`.
+        providers construct the connection URL as `origin + requestUri`. If
+        `origin` is absent, providers should use their configured OFREP base
+        URL origin.
       properties:
         origin:
           type: string
           format: uri
           description: |
             The scheme + host + optional port portion of the endpoint URL.
+            If absent, providers should use their configured OFREP base URL origin.
           example: "https://sse.example.com"
         requestUri:
           type: string
@@ -322,5 +323,5 @@ eventStream:
   - `polling`: Ignore `eventStreams` and rely solely on polling.
   - `none`: Perform no background refresh; rely solely on explicit `onContextChange` calls.
 - **Existing SSE libraries**: The LaunchDarkly open-source SSE client libraries ([Java/Android](https://github.com/launchdarkly/okhttp-eventsource), [.NET](https://github.com/launchdarkly/dotnet-eventsource), [JavaScript](https://github.com/launchdarkly/js-eventsource), [Python](https://github.com/launchdarkly/python-eventsource), [Swift/iOS](https://github.com/launchdarkly/swift-eventsource)) are well-maintained and could be used by OFREP provider implementations. Browser environments can use the native `EventSource` API.
-- **Provider guideline updates**: The [static context provider guideline](../../guideline/static-context-provider.md) would need a new section describing SSE connection management alongside the existing polling section. Server-side provider guidelines should also be updated to document SSE usage with single-flag evaluations.
+- **Provider guideline updates**: The [static context provider guideline](../../guideline/static-context-provider.md) would need a new section describing SSE connection management alongside the existing polling section.
 - **Standalone endpoint for local evaluation**: Providers doing in-process local evaluation (outside of OFREP) have no evaluation response to carry `eventStreams`. A standalone endpoint such as `GET /ofrep/v1/eventStreams` that returns just the event stream connection details is deferred to a follow-up ADR.

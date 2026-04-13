@@ -1,0 +1,47 @@
+openapi: 3.2.0
+servers:
+  - url: /
+info:
+  version: 0.3.0
+  title: OFREP Event Streams
+  description: |
+    Supplementary OpenAPI 3.2.0 specification documenting the Server-Sent Events (SSE)
+    event stream format used by OFREP for real-time flag configuration change notifications
+    (see ADR-0008).
+
+    This file uses OpenAPI 3.2.0 for `text/event-stream` + `itemSchema` support. The core
+    OFREP specification remains at OpenAPI 3.1.0 in `openapi.yaml`.
+
+    The SSE endpoint URLs are opaque and vendor-provided via the `eventStreams` field in
+    evaluation responses. This path item documents the event format only.
+  contact:
+    url: https://github.com/open-feature/protocol
+  license:
+    identifier: Apache-2.0
+    name: Apache 2.0
+tags:
+  - name: Event Streams
+    description: |
+      **Optional**: Real-time change notification mechanisms for flag configuration updates (see ADR-0008).
+components:
+  pathItems:
+    eventStreamConnection:
+      get:
+        tags: [Event Streams]
+        summary: SSE Flag Configuration Change Notification
+        description: |
+          Describes the Server-Sent Events (SSE) stream that providers receive from
+          the URLs specified in `eventStreams`. Events signal that the underlying flag
+          configuration has changed and the provider should re-fetch evaluations.
+
+          This path item documents the event format only; the actual SSE endpoint URLs
+          are opaque and vendor-provided via the `eventStreams` field in evaluation
+          responses. Providers should connect to the URL returned in `eventStreams`
+          rather than constructing a URL from this path item.
+        responses:
+          "200":
+            description: SSE event stream connection established successfully
+            content:
+              text/event-stream:
+                itemSchema:
+                  $ref: "openapi.yaml#/components/schemas/sseEvent"

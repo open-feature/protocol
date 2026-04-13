@@ -2,7 +2,7 @@ openapi: 3.1.0
 servers:
   - url: /
 info:
-  version: 0.2.0
+  version: 0.3.0
   title: OpenFeature Remote Evaluation Protocol (OFREP)
   description: |
     ---
@@ -146,7 +146,9 @@ paths:
           schema:
             type: string
           required: false
-          example: '"abc123xyz"'
+          example: abc123xyz
+        - $ref: "#/components/parameters/flagConfigEtag"
+        - $ref: "#/components/parameters/flagConfigLastModified"
       requestBody:
         required: true
         content:
@@ -170,7 +172,7 @@ paths:
                 Entity tag (ETag) representing the current state of all flags. Clients should 
                 include this value in subsequent requests using the `If-None-Match` header for 
                 cache validation.
-              example: '"abc123xyz"'
+              example: abc123xyz
           content:
             application/json:
               schema:
@@ -188,6 +190,10 @@ paths:
                   - key: non-existent-flag
                     errorCode: FLAG_NOT_FOUND
                     errorDetails: "Flag 'non-existent-flag' was not found"
+                eventStreams:
+                  - type: sse
+                    url: https://sse.example.com/event-stream?channels=env_abc123_v1
+                    inactivityDelaySec: 120
                 metadata:
                   version: v12
         "304":
@@ -245,6 +251,42 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
+  parameters:
+    flagConfigEtag:
+      in: query
+      name: flagConfigEtag
+      description: |
+        Optional ETag metadata provided by an event stream for change-triggered
+        re-fetches (see ADR-0008). This is not a standard HTTP conditional request
+        header; it is metadata for server-side cache validation and freshness
+        checks. It should only be included when the request is directly triggered
+        by a received change notification event.
+      schema:
+        type: string
+      required: false
+      example: 550e8400-e29b-41d4-a716-446655440000
+    flagConfigLastModified:
+      in: query
+      name: flagConfigLastModified
+      description: |
+        Optional last-modified metadata provided by an event stream for
+        change-triggered re-fetches (see ADR-0008). Supports Unix timestamp in
+        seconds (recommended) or an ISO 8601 date-time string, and is
+        transported as query metadata rather than `If-Modified-Since`. It should
+        only be included when the request is directly triggered by a received
+        change notification event.
+      schema:
+        oneOf:
+          - type: integer
+            minimum: 0
+          - type: string
+            format: date-time
+      required: false
+      examples:
+        epochSeconds:
+          value: 1771622898
+        isoDate:
+          value: "2026-02-20T21:28:18Z"
   schemas:
     bulkEvaluationRequest:
       description: |
@@ -276,6 +318,16 @@ components:
           $ref: "#/components/schemas/metadata"
           description: |
             Arbitrary metadata for the flag set, useful for telemetry and documentary purposes.
+        eventStreams:
+          type: array
+          description: |
+            Optional array of real-time change notification connections. When present,
+            the provider should connect to any entries with a known type and re-fetch
+            flag evaluations when notified of changes. If not present, the provider
+            should continue using polling for change detection. Entries with unknown
+            types must be ignored for forward compatibility.
+          items:
+            $ref: "#/components/schemas/eventStream"
     bulkEvaluationFailure:
       description: |
         Failure response for bulk evaluation. Returned when the entire bulk evaluation request 
@@ -308,6 +360,153 @@ components:
     serverEvaluationSuccess:
       allOf:
         - $ref: "#/components/schemas/evaluationSuccess"
+    eventStream:
+      description: |
+        A real-time change notification connection endpoint. The `type` field
+        identifies the push mechanism; currently only `sse` is defined. Providers
+        must ignore entries with unknown types for forward compatibility.
+        Exactly one of `url` or `endpoint` must be provided.
+      type: object
+      required:
+        - type
+      oneOf:
+        - required:
+            - url
+          not:
+            required:
+              - endpoint
+        - required:
+            - endpoint
+          not:
+            required:
+              - url
+      properties:
+        type:
+          type: string
+          description: |
+            The connection type identifying the push mechanism to use.
+            Currently only `sse` is defined. Providers must ignore entries
+            with unknown types for forward compatibility.
+          example: "sse"
+        url:
+          type: string
+          format: uri
+          description: |
+            The endpoint URL the client should connect to for real-time
+            flag change notifications. This is the default representation and
+            is opaque to the provider. The URL may include authentication tokens,
+            channel identifiers, or other query parameters as needed by the
+            vendor's infrastructure. Implementations must treat this value as
+            sensitive and must not log or persist the full URL including its
+            query string.
+          example: "https://sse.example.com/event-stream?channels=env_abc123_v1"
+        endpoint:
+          $ref: "#/components/schemas/eventStreamEndpoint"
+        inactivityDelaySec:
+          type: integer
+          minimum: 1
+          default: 120
+          description: |
+            Number of seconds of client inactivity (e.g., browser tab hidden,
+            mobile app backgrounded) after which the connection should be closed
+            to conserve resources. The client must reconnect and perform a full
+            unconditional re-fetch when activity resumes. When determining the
+            effective inactivity timeout, providers should use a client-side
+            override if configured; otherwise use this value when present;
+            otherwise default to 120 seconds.
+          example: 120
+    eventStreamEndpoint:
+      type: object
+      required:
+        - requestUri
+      description: |
+        Structured endpoint components for deployments that need to override
+        the origin cleanly while preserving the request target. When present,
+        providers construct the connection URL as `origin + requestUri`. If
+        `origin` is absent, providers should use their configured OFREP base
+        URL origin.
+      properties:
+        origin:
+          type: string
+          format: uri
+          description: |
+            The scheme + host + optional port portion of the endpoint URL.
+            If absent, providers should use their configured OFREP base URL origin.
+          example: "https://sse.example.com"
+        requestUri:
+          type: string
+          pattern: "^/"
+          description: |
+            The path + query portion of the endpoint URL. Must start with `/`.
+          example: "/event-stream?channels=env_abc123_v1"
+    sseEvent:
+      description: |
+        Schema for a single Server-Sent Event in the flag configuration change
+        notification stream. The `data` field contains a JSON-encoded payload
+        that providers must parse to determine the event type and any metadata.
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: string
+          description: |
+            JSON-encoded event payload. Providers must parse this string as JSON
+            and inspect the `type` field to determine behavior.
+          contentMediaType: application/json
+          contentSchema:
+            $ref: "#/components/schemas/sseEventData"
+        event:
+          type: string
+          description: |
+            The SSE event type. Always `message` for OFREP events. Providers
+            must inspect `data.type` rather than this field for event routing.
+          example: "message"
+        id:
+          type: string
+          description: |
+            Event identifier used by SSE clients for resume semantics via
+            `Last-Event-ID`.
+          example: "evt-1234"
+        retry:
+          type: integer
+          minimum: 0
+          description: |
+            Reconnection time in milliseconds suggested by the server.
+    sseEventData:
+      description: |
+        JSON payload inside the event `data` field. The `type` field determines
+        the event semantics. Providers must handle `refetchEvaluation` and
+        ignore unknown values for forward compatibility.
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: |
+            The OFREP event type. Currently only `refetchEvaluation` is defined.
+            Providers must ignore unknown values for forward compatibility.
+          example: "refetchEvaluation"
+        etag:
+          type: string
+          description: |
+            Latest flag configuration cache validation token. If present,
+            providers should include it as the `flagConfigEtag` query parameter
+            on the re-fetch request.
+          example: abc123
+        lastModified:
+          description: |
+            Latest flag configuration timestamp. Supports Unix timestamp in
+            seconds (recommended) or an ISO 8601 date-time string.
+            If present, providers should include it as the `flagConfigLastModified`
+            query parameter on the re-fetch request.
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: string
+              format: date-time
+          example: 1771622898
     evaluationSuccess:
       description: |
         Successful feature flag evaluation response. The value property is present 
@@ -498,3 +697,4 @@ components:
     flagMetadataDescription:
       description: |
         Arbitrary metadata for the flag, useful for telemetry and documentary purposes.
+
