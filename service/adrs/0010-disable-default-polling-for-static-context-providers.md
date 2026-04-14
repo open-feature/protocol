@@ -96,6 +96,7 @@ All re-fetch triggers (foreground, SSE push, context change, opt-in polling) sho
 
 1. Should the ADR specify a recommended cooldown duration for foreground re-fetches, or leave this to implementations?
 2. How should providers handle the transition for existing applications that depend on the current default polling behavior? Should there be a deprecation period or migration guide?
+   - **Answer:** This can be treated as a breaking provider change. OFREP providers are all sub-v1, so there is no semver obligation to provide a deprecation period. Breaking provider changes are typically just changes in options or behaviors and are straightforward to handle.
 
 ## Related
 
