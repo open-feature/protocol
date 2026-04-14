@@ -86,7 +86,6 @@ All re-fetch triggers (foreground, SSE push, context change, opt-in polling) sho
 ## Implementation Notes
 
 - Foreground detection should be implemented behind a platform abstraction so it can be tested and swapped
-- Providers should apply a short cooldown (e.g., 5-10 seconds) on foreground re-fetches to avoid excessive requests from rapid foreground/background cycling
 - The existing `pollInterval` configuration should default to `0` (disabled) instead of the current positive values (JS: 30000ms, Swift: 30s, Kotlin: 5min). Applications can opt into polling by setting a positive value.
 - This ADR supersedes the default polling behavior established in [ADR-0005](0005-polling-for-bulk-evaluation-changes.md) for static-context providers only. ADR-0005 remains valid for the polling protocol mechanism itself and for dynamic-context (server-side) providers.
 - Providers should emit `PROVIDER_CONFIGURATION_CHANGED` when a foreground re-fetch returns updated flag values
@@ -94,7 +93,8 @@ All re-fetch triggers (foreground, SSE push, context change, opt-in polling) sho
 
 ## Open Questions
 
-1. Should the ADR specify a recommended cooldown duration for foreground re-fetches, or leave this to implementations?
+1. ~~Should the ADR specify a recommended cooldown duration for foreground re-fetches, or leave this to implementations?~~
+   - **Answer:** Not needed. ETag/304 already short-circuits redundant requests, and rapid foreground/background cycling is not a realistic concern.
 2. How should providers handle the transition for existing applications that depend on the current default polling behavior? Should there be a deprecation period or migration guide?
    - **Answer:** This can be treated as a breaking provider change. OFREP providers are all sub-v1, so there is no semver obligation to provide a deprecation period. Breaking provider changes are typically just changes in options or behaviors and are straightforward to handle.
 
