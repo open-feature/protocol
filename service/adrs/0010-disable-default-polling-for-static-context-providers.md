@@ -51,7 +51,7 @@ Providers should detect app foreground / page visibility using platform-appropri
 
 On foreground, if the provider has an active SSE connection, no re-fetch is needed as the SSE connection handles change detection. If the SSE connection was closed during inactivity (as described in [ADR-0008](0008-sse-for-bulk-evaluation-changes.md)), the provider should reconnect and perform a full unconditional re-fetch.
 
-If SSE is not configured or not supported by the server, the provider should re-fetch on foreground unconditionally.
+If SSE is not configured or not supported by the server, the provider should re-fetch on foreground.
 
 ### Interaction with SSE (ADR-0008)
 
@@ -88,7 +88,7 @@ All re-fetch triggers (foreground, SSE push, context change, opt-in polling) sho
 - Foreground detection should be implemented behind a platform abstraction so it can be tested and swapped
 - The existing `pollInterval` configuration should default to `0` (disabled) instead of the current positive values (JS: 30000ms, Swift: 30s, Kotlin: 5min). Applications can opt into polling by setting a positive value.
 - This ADR supersedes the default polling behavior established in [ADR-0005](0005-polling-for-bulk-evaluation-changes.md) for static-context providers only. ADR-0005 remains valid for the polling protocol mechanism itself and for dynamic-context (server-side) providers.
-- Providers should emit `PROVIDER_CONFIGURATION_CHANGED` when a foreground re-fetch returns updated flag values
+- Providers should emit `ConfigurationChanged` when a foreground re-fetch returns updated flag values
 - SDK documentation should note the change in default behavior and how to opt into timer-based polling if needed
 
 ## Open Questions
