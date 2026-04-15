@@ -28,10 +28,10 @@ The persisted entry should include:
 
 - the bulk evaluation payload
 - the associated `ETag`, if one was returned
-- a `cacheKeyHash` equal to `hash(targetingKey)`, or `hash(cacheKeyPrefix + targetingKey)` when a `cacheKeyPrefix` is configured
+- a `cacheKeyHash` equal to `hash(targetingKey)`, or `hash(cacheKeyPrefix + ":" + targetingKey)` when a `cacheKeyPrefix` is configured
 - the time the entry was written, which can be used for diagnostics and optional implementation-specific staleness policies
 
-Providers should support an optional `cacheKeyPrefix` configuration option. When provided, the prefix is included in the cache key hash: `hash(cacheKeyPrefix + targetingKey)`. This prevents collisions when multiple OFREP provider instances share the same local storage partition (e.g., two providers on the same web origin pointing at different OFREP servers). The prefix value is left to the application author; it could be the OFREP base URL, a project or auth token, or any other distinguishing string. When no prefix is configured, the cache key defaults to `hash(targetingKey)`.
+Providers should support an optional `cacheKeyPrefix` configuration option. When provided, the prefix is included in the cache key hash: `hash(cacheKeyPrefix + ":" + targetingKey)`. This prevents collisions when multiple OFREP provider instances share the same local storage partition (e.g., two providers on the same web origin pointing at different OFREP servers). The prefix value is left to the application author; it could be the OFREP base URL, a project or auth token, or any other distinguishing string. When no prefix is configured, the cache key defaults to `hash(targetingKey)`.
 
 Example persisted value:
 
@@ -139,7 +139,7 @@ If the background refresh fails and the provider cannot confirm that cached valu
 ### Cache matching and fallback
 
 Providers should only reuse a persisted evaluation when it matches the current static-context inputs.
-This includes a matching `cacheKeyHash` equal to `hash(targetingKey)`, or `hash(cacheKeyPrefix + targetingKey)` when a `cacheKeyPrefix` is configured.
+This includes a matching `cacheKeyHash` equal to `hash(targetingKey)`, or `hash(cacheKeyPrefix + ":" + targetingKey)` when a `cacheKeyPrefix` is configured.
 
 The cache key is intentionally derived from `targetingKey` alone rather than the full evaluation context.
 Static-context evaluations on the server can depend on context properties beyond `targetingKey`, so cached values may not reflect the current full context.
@@ -214,4 +214,4 @@ Every major vendor SDK (LaunchDarkly, Statsig, DevCycle, Eppo) uses cache-first 
 
 1. Should providers support caching evaluations for multiple targeting keys (like LaunchDarkly's `maxCachedContexts`), or only retain the most recent? Multi-context caching enables instant user switching on shared devices but increases storage usage.
 2. Should the storage key include a namespace to prevent collisions when multiple OFREP providers share the same local storage origin?
-   - **Answer:** Yes. Providers should support an optional `cacheKeyPrefix` configuration option. When provided, the cache key becomes `hash(cacheKeyPrefix + targetingKey)` instead of `hash(targetingKey)`. The prefix value is left to the application author (e.g., the OFREP base URL, a project or auth token, or any other distinguishing string). The default (no prefix) keeps the single-provider case simple. See the `cacheKeyPrefix` section in the Decision above.
+   - **Answer:** Yes. Providers should support an optional `cacheKeyPrefix` configuration option. When provided, the cache key becomes `hash(cacheKeyPrefix + ":" + targetingKey)` instead of `hash(targetingKey)`. The prefix value is left to the application author (e.g., the OFREP base URL, a project or auth token, or any other distinguishing string). The default (no prefix) keeps the single-provider case simple. See the `cacheKeyPrefix` section in the Decision above.
