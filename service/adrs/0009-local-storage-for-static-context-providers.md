@@ -209,6 +209,7 @@ Every major vendor SDK (LaunchDarkly, Statsig, DevCycle, Eppo) uses cache-first 
 - On the first cold start (no persisted entry), `initialize()` blocks on the network request as normal. Cache-first initialization only applies once a successful evaluation has been persisted
 - SDK documentation should note that initial evaluations may return cached values (with `CACHED` reason) that are subsequently updated when fresh values arrive
 - Providers should enforce a configurable TTL on persisted entries to ensure stale caches are eventually purged, particularly in cases where the provider can no longer refresh from the server (e.g. persistent auth errors). Since auth and config errors do not clear the persisted cache, the TTL is the mechanism that prevents indefinitely stale data. DevCycle uses a 30-day default (`configCacheTTL`) as a reference.
+- If a storage write fails (e.g. quota exceeded, permission denied), the provider should log the error and continue operating with the fresh values in memory. The previously persisted entry, if any, remains on disk for the next cold start.
 
 ## Open Questions
 
