@@ -43,7 +43,7 @@ Static-context providers should not poll on a fixed timer by default. Instead, p
 
 4. **SSE push** — when an SSE `refetchEvaluation` event is received (as defined in [ADR-0008](0008-sse-for-bulk-evaluation-changes.md)), the provider re-fetches bulk evaluations. This provides real-time updates when the server supports it.
 
-Timer-based polling should remain available as an opt-in configuration for applications that want it, but the default poll interval should be disabled (0 or negative value).
+Timer-based polling should remain available as an opt-in configuration for applications that want it, but the default poll interval should be disabled (`0`).
 
 ### Foreground detection
 
