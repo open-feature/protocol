@@ -103,6 +103,10 @@ Applications choosing `network-first` should consider lowering the provider's re
 
 When `cacheMode` is `disabled`, the provider does not read from or write to local storage. `initialize()` blocks on the `/ofrep/v1/evaluate/flags` request and behaves the same as the cache-miss path in `local-cache-first` mode. Persistence-related options (`cacheKeyPrefix`, TTL) have no effect.
 
+#### `local-cache-first` initialization sequence
+
+The diagram below illustrates the `local-cache-first` initialization flow in detail, covering both cache hit and cache miss paths along with the subsequent background refresh. `network-first` and `disabled` modes follow the flows described in their respective subsections above.
+
 ```mermaid
 sequenceDiagram
     participant App as Application
