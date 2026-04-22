@@ -85,6 +85,8 @@ The initialization flow depends on the configured `cacheMode`. The default `loca
 
 #### `network-first` initialization
 
+This mode matches the existing behavior of today's OFREP static-context providers (`js-sdk-contrib`, `kotlin-sdk-contrib`, `ofrep-swift-client-provider`), which all block `initialize()` on a network request, with one addition: successful evaluations are persisted to disk and used as a fallback when the network is unavailable. An application migrating from today's provider to `network-first` sees no UX change on the happy path, and gains graceful recovery when the network is unreachable or the server returns a transient error.
+
 In this mode, `initialize()` awaits the initial `/ofrep/v1/evaluate/flags` request (subject to the provider's request timeout) rather than returning immediately from cache. A persisted entry is only used as a fallback when the network is unavailable.
 
 1. Attempt the `/ofrep/v1/evaluate/flags` request and await the response.
