@@ -105,7 +105,9 @@ When `cacheMode` is `disabled`, the provider does not read from or write to loca
 
 #### `local-cache-first` initialization sequence
 
-The diagram below illustrates the `local-cache-first` initialization flow in detail, covering both cache hit and cache miss paths along with the subsequent background refresh. `network-first` and `disabled` modes follow the flows described in their respective subsections above.
+The diagrams below illustrate the `local-cache-first` flow in three parts: cache-hit initialization (with background refresh), cache-miss initialization, and the normal polling cycle. `network-first` and `disabled` modes follow the flows described in their respective subsections above.
+
+**Cache hit — initialization from persisted entry, then background refresh:**
 
 ```mermaid
 sequenceDiagram
@@ -116,37 +118,57 @@ sequenceDiagram
 
     App->>Provider: initialize(context)
     Provider->>Storage: load persisted evaluation
-    alt Cache hit (matching entry exists)
-        Storage-->>Provider: persisted entry
-        Provider->>Provider: Populate in-memory cache
-        Provider-->>App: PROVIDER_READY (from cache, reason: CACHED)
-        Provider->>Server: POST /ofrep/v1/evaluate/flags (background)
-        alt Request succeeds
-            Server-->>Provider: 200 OK (flags + ETag)
-            Provider->>Provider: Update in-memory cache
-            Provider->>Storage: Persist updated entry
-            Provider-->>App: PROVIDER_CONFIGURATION_CHANGED
-        else Transient error
-            Note over Provider: Continue serving cached values
-        else Auth/config error
-            Note over Provider: Surface error, continue serving cached values
-        end
-    else Cache miss (no matching entry)
-        Storage-->>Provider: none
-        Provider->>Server: POST /ofrep/v1/evaluate/flags
-        alt Request succeeds
-            Server-->>Provider: 200 OK (flags + ETag)
-            Provider->>Provider: Populate in-memory cache
-            Provider->>Storage: Persist entry
-            Provider-->>App: PROVIDER_READY
-        else Transient error
-            Provider-->>App: PROVIDER_ERROR
-        else Auth/config error
-            Provider-->>App: PROVIDER_ERROR (fatal)
-        end
-    end
+    Storage-->>Provider: persisted entry
+    Provider->>Provider: Populate in-memory cache
+    Provider-->>App: PROVIDER_READY (from cache, reason: CACHED)
 
-    Note over App,Server: Normal polling cycle
+    Provider->>Server: POST /ofrep/v1/evaluate/flags (background)
+    alt Request succeeds
+        Server-->>Provider: 200 OK (flags + ETag)
+        Provider->>Provider: Update in-memory cache
+        Provider->>Storage: Persist updated entry
+        Provider-->>App: PROVIDER_CONFIGURATION_CHANGED
+    else Transient error
+        Note over Provider: Continue serving cached values
+    else Auth/config error
+        Note over Provider: Surface error, continue serving cached values
+    end
+```
+
+**Cache miss — no persisted entry, block on network:**
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Provider as OFREP Provider
+    participant Storage as Local Storage
+    participant Server as OFREP Service
+
+    App->>Provider: initialize(context)
+    Provider->>Storage: load persisted evaluation
+    Storage-->>Provider: none
+    Provider->>Server: POST /ofrep/v1/evaluate/flags
+    alt Request succeeds
+        Server-->>Provider: 200 OK (flags + ETag)
+        Provider->>Provider: Populate in-memory cache
+        Provider->>Storage: Persist entry
+        Provider-->>App: PROVIDER_READY
+    else Transient error
+        Provider-->>App: PROVIDER_ERROR
+    else Auth/config error
+        Provider-->>App: PROVIDER_ERROR (fatal)
+    end
+```
+
+**Normal polling cycle — ETag revalidation:**
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Provider as OFREP Provider
+    participant Storage as Local Storage
+    participant Server as OFREP Service
+
     Provider->>Server: POST /ofrep/v1/evaluate/flags with If-None-Match
     alt Flags changed
         Server-->>Provider: 200 OK (new flags + ETag)
@@ -158,7 +180,7 @@ sequenceDiagram
     end
 ```
 
-The sequence diagram above shows the default `local-cache-first` flow. In `network-first` mode, `initialize()` instead awaits the network request first and only loads from cache on network failure (see the "`network-first` initialization" subsection above). In `disabled` mode, no storage reads or writes occur and `initialize()` blocks on the network request the same way the cache-miss path does today.
+The sequence diagrams above show the default `local-cache-first` flow. In `network-first` mode, `initialize()` instead awaits the network request first and only loads from cache on network failure (see the "`network-first` initialization" subsection above). In `disabled` mode, no storage reads or writes occur and `initialize()` blocks on the network request the same way the cache-miss path does today.
 
 ### Why PROVIDER_READY and not PROVIDER_STALE on cache hit
 
