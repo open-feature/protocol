@@ -27,7 +27,7 @@ Static-context providers should persist their last successful bulk evaluation in
 Providers should expose a `cacheMode` option that controls this behavior, with three supported values:
 
 - `local-cache-first` (default): load from the persisted cache immediately on startup so `initialize()` can return right away, then refresh from the network in the background.
-- `network-first`: `initialize()` awaits the initial `/ofrep/v1/evaluate/flags` response (subject to the provider's existing request timeout). If the request succeeds, populate the in-memory cache from the response and persist it. If the request fails with a network error or `5xx`, fall back to the persisted entry when one exists. If the request fails with an authorization or configuration error (`401`, `403`, `400`), emit a fatal error as normal and do not fall back to cached values. This mode still writes successful evaluations to disk so cached values are available for fallback on future startups.
+- `network-first`: matches the existing provider behavior (block `initialize()` on the network request) with a local-cache backup for offline and transient-error scenarios. Successful evaluations are still persisted to disk so future startups have a fallback when the network is unavailable, but cached values are never used on the happy path or on auth/configuration errors.
 - `disabled`: no persistence at all. The in-memory cache is used during the session but nothing is written to or read from local storage. `initialize()` blocks on the network request (same as a cache miss).
 
 The persisted entry should include:
