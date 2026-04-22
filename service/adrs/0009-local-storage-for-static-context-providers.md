@@ -76,7 +76,7 @@ The initialization flow depends on the configured `cacheMode`. The default `loca
    - Attempt the `/ofrep/v1/evaluate/flags` request in the background.
    - If the background request succeeds, update the in-memory cache from the response, update the persisted entry, and emit `PROVIDER_CONFIGURATION_CHANGED`. Evaluations should switch to the server-provided reasons.
    - If the background request fails with a transient or server error (network unavailable, `5xx`), continue serving cached values and retry on the normal polling schedule.
-   - If the background request fails with an authorization or configuration error (`401`, `403`, `400`), surface the error via logging or provider error events and continue serving cached values for the current session. Auth or config errors alone should not invalidate the persisted entry; the cache TTL is what governs when it stops being served. This ensures that subsequent cold starts can still bootstrap from cached values while the error is investigated, rather than immediately degrading to defaults.
+   - If the background request fails with an authorization or configuration error (`401`, `403`, `400`), log the error and emit a `PROVIDER_ERROR` event, then continue serving cached values for the current session. Auth or config errors alone should not invalidate the persisted entry; the cache TTL is what governs when it stops being served. This ensures that subsequent cold starts can still bootstrap from cached values while the error is investigated, rather than immediately degrading to defaults.
 3. **If no matching persisted entry exists (cache miss):**
    - Attempt the `/ofrep/v1/evaluate/flags` request and await the response.
    - If the request succeeds, populate the in-memory cache from the response, persist the entry, and return from `initialize()` (SDK emits `PROVIDER_READY`).
@@ -131,7 +131,8 @@ sequenceDiagram
     else Transient error
         Note over Provider: Continue serving cached values
     else Auth/config error
-        Note over Provider: Surface error, continue serving cached values
+        Provider-->>App: PROVIDER_ERROR (logged, non-fatal)
+        Note over Provider: Continue serving cached values
     end
 ```
 
@@ -207,7 +208,7 @@ When the provider has not initialized from cache (cache miss path, or `network-f
 
 In `network-first` mode, fallback to a persisted entry is limited to network errors, `5xx` responses, and request timeouts. If a persisted entry exists in those cases, the provider loads it, emits `PROVIDER_READY` with `CACHED` as the evaluation reason, and continues retrying in the background.
 
-When the provider has already initialized from cache (cache hit path in `local-cache-first` mode), authorization or configuration errors from the background refresh should be surfaced via logging or provider error events. The provider should continue serving cached values for the current session rather than revoking a working state. Auth or config errors alone should not invalidate the persisted entry; the cache TTL is what governs when it stops being served. This avoids degrading subsequent cold starts to defaults while the error is investigated.
+When the provider has already initialized from cache (cache hit path in `local-cache-first` mode), authorization or configuration errors from the background refresh should be logged and emitted as `PROVIDER_ERROR` events. The provider should continue serving cached values for the current session rather than revoking a working state. Auth or config errors alone should not invalidate the persisted entry; the cache TTL is what governs when it stops being served. This avoids degrading subsequent cold starts to defaults while the error is investigated.
 
 ### Refresh and revalidation
 
