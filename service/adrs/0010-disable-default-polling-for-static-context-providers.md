@@ -12,7 +12,7 @@ OFREP static-context providers currently poll on a fixed timer by default. The J
 
 Timer-based polling is problematic for static-context providers for two reasons:
 
-1. **Sticky bucketing** — polling causes flag values to change mid-session, breaking the expectation that a user sees consistent behavior throughout a session. Most platforms expect feature flag bucketing to remain sticky for a user's whole session. Changing flag values mid-session can cause UI flicker, inconsistent experiences, and breaks experiment integrity.
+1. **Sticky bucketing** — while bucketing is generally deterministic for the same context, time-based targeting rules (commonly used in rollouts) can get triggered between polling intervals, causing evaluated values to change mid-session. Most platforms expect feature flag bucketing to remain sticky for a user's whole session. Changing flag values mid-session can cause UI flicker, inconsistent experiences, and breaks experiment integrity.
 
 2. **Resource efficiency** — timer-based polling is wasteful for static-context providers where the evaluation context rarely changes during a session. On mobile, frequent polling impacts battery life and data usage unnecessarily.
 
