@@ -8,10 +8,6 @@
 </p>
 
 <h2 align="center">OpenFeature Remote Evaluation Protocol (OFREP)</h2>
-
-![Protocol version](https://img.shields.io/github/v/release/openfeature/protocol)
-
-## What is OFREP?
 <!-- x-hide-in-docs-end -->
 
 The **OpenFeature Remote Evaluation Protocol (OFREP)** is an [API specification](./service/openapi.yaml) for feature flagging that enables vendor-agnostic communication between applications and flag management systems. It defines a standard API layer between the provider and the flag management system, allowing any open source or commercial system to implement the protocol and be compatible with community-maintained providers.
