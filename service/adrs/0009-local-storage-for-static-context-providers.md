@@ -41,9 +41,9 @@ The persisted entry should include:
 
 The cache key is tied to the OFREP resource the evaluation was fetched from and the identity it was requested for, so it includes:
 
-- the **OFREP base URL**, so a provider pointed at a different server does not serve another server's cached evaluations. The base URL is stable across restarts, so it does not reintroduce the volatile-input problem.
-- the **auth credential**, so evaluations fetched under different credentials (projects, environments, or keys against the same URL) do not collide. This is the most open to discussion: rotating or short-lived tokens (via `headersFactory`) would change the hash and defeat persistence, but a stable credential gives useful separation for the common case. See Open Question #3.
-- the provider's bound **`domain`**, OpenFeature's intended unit of isolation between provider instances (the binding name passed to `setProvider`). [open-feature/spec#393](https://github.com/open-feature/spec/pull/393) proposes supplying it to `initialize` so providers can use it here; it is empty when a provider has no bound `domain` (e.g. the default provider).
+- the **OFREP base URL**, so a provider pointed at a different server does not serve another server's cached evaluations.
+- the **auth credential**, so evaluations fetched under different credentials (projects, environments, or keys against the same URL) do not collide.
+- the provider's bound **`domain`**, OpenFeature's intended unit of isolation between provider instances (the binding name passed to `setProvider`), supplied to `initialize` per [open-feature/spec#393](https://github.com/open-feature/spec/pull/393). It is empty when a provider has no bound `domain` (e.g. the default provider).
 - the **`targetingKey`**, keying the entry to the user identity (see "Cache matching and fallback" below).
 
 Providers should additionally support an optional `cacheKeyPrefix` option, prepended to the hash (`hash(cacheKeyPrefix + ":" + url + ":" + auth + ":" + domain + ":" + targetingKey)`) so applications can namespace across storage partitions they control directly. The prefix can be any distinguishing string.
