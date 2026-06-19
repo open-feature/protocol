@@ -6,6 +6,8 @@ Date: 2026-03-06
 
 Accepted
 
+Proposed amendment (2026-06-19): include the provider's bound `domain` in the cache key, and soft-propose tying the cache key to the OFREP resource (URL, and optionally auth) it fetches from. See [open-feature/spec#393](https://github.com/open-feature/spec/pull/393).
+
 ## Context
 
 OFREP static-context providers evaluate all flags in one request and then serve evaluations from a local cache.
@@ -34,17 +36,19 @@ The persisted entry should include:
 
 - the bulk evaluation payload
 - the associated `ETag`, if one was returned
-- a `cacheKeyHash` equal to `hash(targetingKey)`, or `hash(cacheKeyPrefix + ":" + targetingKey)` when a `cacheKeyPrefix` is configured
+- a `cacheKeyHash` derived from the provider's bound `domain` (if any) and the `targetingKey`: `hash(domain + ":" + targetingKey)`, additionally prefixed with `cacheKeyPrefix` when one is configured (`hash(cacheKeyPrefix + ":" + domain + ":" + targetingKey)`)
 - the time the entry was written, which can be used for diagnostics and optional implementation-specific staleness policies
 
-Providers should support an optional `cacheKeyPrefix` configuration option. When provided, the prefix is included in the cache key hash: `hash(cacheKeyPrefix + ":" + targetingKey)`. This prevents collisions when multiple OFREP provider instances share the same local storage partition (e.g., two providers on the same web origin pointing at different OFREP servers). The prefix value is left to the application author; it could be the OFREP base URL, a project or auth token, or any other distinguishing string. When no prefix is configured, the cache key defaults to `hash(targetingKey)`.
+The provider's bound `domain` is included in the cache key by default. In OpenFeature a provider is registered against a `domain` (the binding name passed to `setProvider`), which is the model's intended unit of isolation between provider instances. Including the `domain` in the cache key means two providers bound to different domains on the same storage partition do not collide on cache entries automatically, without any application configuration. Today providers are not handed their `domain` at initialization; [open-feature/spec#393](https://github.com/open-feature/spec/pull/393) proposes supplying it to the `initialize` function so providers can use it here. When a provider has no bound `domain` (e.g. the default provider), the `domain` segment is empty.
+
+Providers should additionally support an optional `cacheKeyPrefix` configuration option. When provided, the prefix is included in the cache key hash: `hash(cacheKeyPrefix + ":" + domain + ":" + targetingKey)`. This supplements the `domain` for cases the `domain` alone does not separate, such as two providers bound to the same `domain` but pointing at different OFREP servers, or namespacing across storage partitions an application controls directly. The prefix value is left to the application author; it could be the OFREP base URL, a project or auth token, or any other distinguishing string.
 
 Example persisted value:
 
 ```json
 {
   "version": 1,
-  "cacheKeyHash": "hash(targetingKey)",
+  "cacheKeyHash": "hash(domain + ':' + targetingKey)",
   "etag": "\"abc123\"",
   "writtenAt": "2026-03-07T18:20:00Z",
   "data": {
@@ -196,12 +200,12 @@ If the background refresh fails and the provider cannot confirm that cached valu
 ### Cache matching and fallback
 
 Providers should only reuse a persisted evaluation when it matches the current static-context inputs.
-This includes a matching `cacheKeyHash` equal to `hash(targetingKey)`, or `hash(cacheKeyPrefix + ":" + targetingKey)` when a `cacheKeyPrefix` is configured.
+This includes a matching `cacheKeyHash` derived from the provider's bound `domain` (if any) and the `targetingKey`, optionally prefixed with `cacheKeyPrefix`.
 
-The cache key is intentionally derived from `targetingKey` alone rather than the full evaluation context.
+The cache key is intentionally derived from the bound `domain` and `targetingKey` rather than the full evaluation context.
 Static-context evaluations on the server can depend on context properties beyond `targetingKey`, so cached values may not reflect the current full context.
 However, hashing the full context is impractical for local-cache-first startup because many implementations set volatile context properties on initialization (e.g. `lastSessionTime`, `lastSeen`, `sessionId`) that would change the hash on every app restart, defeating the purpose of persistence.
-The accepted tradeoff is that the cache is keyed by stable user identity: a change in `targetingKey` (user switch, logout) invalidates the cache, but changes to other context properties do not.
+The accepted tradeoff is that the cache is keyed by stable inputs (the bound `domain` and `targetingKey`): a change in `targetingKey` (user switch, logout) or in the bound `domain` invalidates the cache, but changes to other context properties do not.
 Those properties only affect evaluation when the server is reachable, at which point the provider refreshes anyway.
 
 When the provider has not initialized from cache (cache miss path, or `network-first` mode), providers must not silently fall back to persisted data for authorization failures, invalid requests, or other responses that indicate a configuration or protocol problem. In `network-first` mode this applies even when a matching persisted entry exists: the application has explicitly chosen to block on a fresh evaluation, and an auth or configuration error should be surfaced rather than masked by the cache.
@@ -282,7 +286,7 @@ A single default (local-cache-first) with an explicit per-application opt-out is
 - Providers should avoid persisting raw `targetingKey` values when `cacheKeyHash` is sufficient for matching
 - Providers should expose a `cacheMode` option with values `local-cache-first` (default), `network-first`, and `disabled`. `network-first` and `disabled` block `initialize()` on the network request; `local-cache-first` returns from `initialize()` immediately when a persisted entry exists
 - Providers should expose an optional `cacheKeyPrefix` configuration option so multiple provider instances sharing one storage partition do not collide on the same storage key
-- Providers should clear or replace persisted entries when the `targetingKey` changes, such as on logout or user switch
+- Providers should clear or replace persisted entries when the cache key changes, such as on logout or user switch (`targetingKey` change) or when the provider is re-bound to a different `domain`
 - In `local-cache-first` mode, the `initialize()` function should return immediately when a matching cached entry exists, allowing the SDK to emit `PROVIDER_READY` from cache
 - Providers should emit `PROVIDER_CONFIGURATION_CHANGED` when fresh values replace cached values after a background refresh
 - If `onContextChanged()` is called while a background refresh is still in-flight, the provider should cancel or discard the in-flight request. The context-change evaluation supersedes it and should be the authoritative write to the persisted entry
@@ -296,4 +300,7 @@ A single default (local-cache-first) with an explicit per-application opt-out is
 
 1. Should providers support caching evaluations for multiple targeting keys (like LaunchDarkly's `maxCachedContexts`), or only retain the most recent? Multi-context caching enables instant user switching on shared devices but increases storage usage.
 2. Should the storage key include a namespace to prevent collisions when multiple OFREP providers share the same local storage origin?
-   - **Answer:** Yes. Providers should support an optional `cacheKeyPrefix` configuration option. When provided, the cache key becomes `hash(cacheKeyPrefix + ":" + targetingKey)` instead of `hash(targetingKey)`. The prefix value is left to the application author (e.g., the OFREP base URL, a project or auth token, or any other distinguishing string). The default (no prefix) keeps the single-provider case simple. See the `cacheKeyPrefix` section in the Decision above.
+   - **Answer (amended 2026-06-19):** Yes, and by default. The provider's bound `domain` is now included in the cache key (`hash(domain + ":" + targetingKey)`), so two providers bound to different domains on the same storage partition do not collide without any application configuration. This relies on [open-feature/spec#393](https://github.com/open-feature/spec/pull/393) supplying the bound `domain` to the provider's `initialize` function. The optional `cacheKeyPrefix` remains as a supplement for cases the `domain` alone does not separate (e.g. two providers on the same `domain` pointing at different OFREP servers). The original answer keyed only on `cacheKeyPrefix + targetingKey`; the amendment makes `domain` the automatic default and demotes `cacheKeyPrefix` to a supplement. See the `cacheKeyPrefix` section in the Decision above.
+3. **(Soft proposal, 2026-06-19)** Should the cache key also be tied to the OFREP resource the evaluation was fetched from, rather than relying on the application to supply a distinguishing `cacheKeyPrefix`?
+   - **OFREP URL (low risk):** Folding the OFREP base URL into the cache key (e.g. `hash(url + ":" + domain + ":" + targetingKey)`) ties cached results directly to the resource that produced them, so a provider reconfigured to point at a different server does not serve another server's cached evaluations, and same-origin instances pointing at different servers separate automatically without an explicitly configured prefix. The base URL is stable across restarts, so it does not reintroduce the volatile-input problem. This mirrors vendor SDKs that key their persisted cache by SDK key or environment (Statsig, Eppo, ConfigCat). The cost is that changing the configured URL silently invalidates the cache, which is usually the desired behavior.
+   - **Auth header (higher risk, deliberately soft):** Including the auth credential would tie the cache even more tightly to the protected resource, but credentials are not always stable. OFREP supports rotating/short-lived tokens via `headersFactory`, and a rotating bearer token would change the hash on every rotation and defeat persistence. This is the same reason the original ADR dropped `authToken` from the cache key (see the [protocol#64](https://github.com/open-feature/protocol/pull/64) discussion). If auth is keyed at all, it should be a stable credential identifier (e.g. a client/SDK key) rather than a rotating token, and likely opt-in rather than default. Recommend treating the URL as the primary resource binding and leaving auth-based keying as opt-in.
