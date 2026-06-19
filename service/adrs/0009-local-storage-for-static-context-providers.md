@@ -43,7 +43,7 @@ The cache key is tied to the OFREP resource the evaluation was fetched from and 
 
 - the **OFREP base URL**, so a provider pointed at a different server does not serve another server's cached evaluations.
 - the **auth credential**, so evaluations fetched under different credentials (projects, environments, or keys against the same URL) do not collide.
-- the provider's bound **`domain`**, OpenFeature's intended unit of isolation between provider instances (the binding name passed to `setProvider`), supplied to `initialize` per [open-feature/spec#393](https://github.com/open-feature/spec/pull/393). It is empty when a provider has no bound `domain`.
+- the provider's bound **`domain`**, OpenFeature's intended unit of isolation between provider instances (the binding name passed to `setProvider`), supplied to `initialize` per [open-feature/spec#393](https://github.com/open-feature/spec/pull/393). A persisting OFREP provider should declare itself `domain-scoped` (also spec#393) so the API binds it to at most one `domain`, making the `domain` it keys on unambiguous. It is empty when a provider has no bound `domain`.
 - the **`targetingKey`**, keying the entry to the user identity (see "Cache matching and fallback" below).
 
 Providers should additionally support an optional `cacheKeyPrefix` option, prepended to the hash (`hash(cacheKeyPrefix + ":" + url + ":" + auth + ":" + domain + ":" + targetingKey)`) so applications can namespace across storage partitions they control directly. The prefix can be any distinguishing string.
@@ -288,6 +288,7 @@ A single default (local-cache-first) with an explicit per-application opt-out is
 
 - "Local storage" means a local persistent key-value store appropriate for the runtime, such as browser `localStorage` on the web or an equivalent mobile storage mechanism
 - Providers should version their persisted format so future schema changes can be handled safely
+- Persisting providers should declare themselves `domain-scoped` (per [open-feature/spec#393](https://github.com/open-feature/spec/pull/393)) so the API binds each instance to at most one `domain`. This keeps the `domain` component of the cache key unambiguous and avoids a single shared instance writing entries for more than one `domain`
 - Providers should avoid persisting raw `targetingKey` values when `cacheKeyHash` is sufficient for matching
 - Providers should expose a `cacheMode` option with values `local-cache-first` (default), `network-first`, and `disabled`. `network-first` and `disabled` block `initialize()` on the network request; `local-cache-first` returns from `initialize()` immediately when a persisted entry exists
 - Providers should expose an optional `cacheKeyPrefix` configuration option so multiple provider instances sharing one storage partition do not collide on the same storage key
