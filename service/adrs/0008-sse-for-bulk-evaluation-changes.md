@@ -71,7 +71,7 @@ The `eventStreams` field is an array to support vendors whose infrastructure may
 
 ### SSE Event Format
 
-Events use the standard [SSE event format](https://html.spec.whatwg.org/multipage/server-sent-events.html). The SSE `data` field is a raw string (multiple `data:` lines are concatenated per the W3C spec) that providers must parse as JSON:
+Events use the standard [SSE event format](https://html.spec.whatwg.org/multipage/server-sent-events.html). The SSE `data` field is a raw string (multiple `data:` lines are concatenated per the W3C spec). By default, providers parse the `data` field as JSON with the shape shown below. This is the default wire format, not a fixed requirement — see [Customizable payload parsing](#customizable-payload-parsing):
 
 ```
 id: evt-1234
@@ -82,6 +82,16 @@ data: {"type": "refetchEvaluation", "etag": "\"abc123\"", "lastModified": 177162
 The SSE envelope `event:` field is always `message`. Using a named SSE event type (e.g. `event: refetchEvaluation`) was considered but rejected — most SSE client libraries (Java, Swift, .NET, Python) do not support registering handlers per named event type and require manual dispatch regardless, so routing via a `type` field inside the JSON `data` payload achieves the same result consistently across all implementations. It also makes ignoring unknown future event types trivial with a single generic handler.
 
 Providers must inspect `data.type` to determine behavior — not the SSE envelope `event:` field.
+
+#### Customizable payload parsing
+
+Earlier revisions of this ADR fixed the SSE wire format: the `data` field had to be a JSON object with `type` / `etag` / `lastModified` at its top level, and providers were required to parse it as such. This coupled the protocol to one specific on-the-wire encoding, which does not hold across all SSE vendors. Some hosted SSE services do not support emitting arbitrary application payloads as the top-level `data` value and instead wrap the payload inside an additional envelope layer — for example, Ably nests the OFREP payload under `data.data`. Others may deliver the payload in a non-JSON format.
+
+This ADR therefore relaxes that requirement. The fixed shape above is only the **default**; what the protocol actually requires is that the provider can obtain an OFREP event object with `type` (and optional `etag` / `lastModified`) from each SSE message and act on it. How the raw `data` is decoded into that object is an implementation detail that may be overridden, so the SDK is not bound to a single wire encoding.
+
+The default parsing behavior is: JSON-parse the SSE `data` field when it is a string, otherwise pass the value through as-is (some SSE client implementations deserialize the payload before handing it to the application). Endpoints that emit the OFREP event payload directly need no customization.
+
+Overriding the parsing is optional and is aimed at shared, extensible provider implementations reused across multiple vendors, rather than being required of every provider. Such implementations may expose a hook that receives the raw SSE message event and returns the parsed OFREP event object, defaulting to the JSON-parse-string-otherwise-passthrough behavior above. This keeps the common case zero-configuration while letting integrations with vendors that wrap or re-encode the payload adapt the wire format without changing the rest of the provider's SSE handling.
 
 Event data fields:
 - `type` (string, required): The OFREP event type inside the JSON data payload. Providers must handle `refetchEvaluation` and must ignore unknown values for forward compatibility.
@@ -152,6 +162,7 @@ Provider implementation guidelines:
    - If `eventStreams` is present and the URL set is unchanged, existing connections may be reused.
    - If `eventStreams` is present and the URL set has changed, close existing connections then connect to the new URLs.
 7. Providers SHOULD coalesce concurrent `refetchEvaluation` events into a single re-fetch request (e.g., via in-flight deduplication or a short debounce window) to avoid amplifying load on the flag management system when multiple connections fire simultaneously.
+8. Shared, extensible provider implementations may allow the SSE payload parsing to be overridden (see [Customizable payload parsing](#customizable-payload-parsing)); this is optional and not required of providers targeting endpoints that emit the OFREP payload directly. The default parses string `data` as JSON and passes non-string `data` through unchanged; an override lets integrations with vendors that wrap the payload (e.g., Ably's `data.data` envelope) or use non-JSON formats extract the OFREP event object before `type` / `etag` / `lastModified` are read.
 
 ### OpenAPI Schema Additions
 
