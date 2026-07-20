@@ -85,9 +85,9 @@ Providers must inspect `data.type` to determine behavior — not the SSE envelop
 
 #### Customizable payload parsing
 
-Earlier revisions of this ADR fixed the SSE wire format: the `data` field had to be a JSON object with `type` / `etag` / `lastModified` at its top level, and providers were required to parse it as such. This coupled the protocol to one specific on-the-wire encoding, which does not hold across all SSE vendors. Some hosted SSE services do not support emitting arbitrary application payloads as the top-level `data` value and instead wrap the payload inside an additional envelope layer — for example, Ably nests the OFREP payload under `data.data`. Others may deliver the payload in a non-JSON format.
+The JSON shape shown above is the default wire format, not a fixed requirement. The protocol does not bind providers to one specific on-the-wire encoding, because a single encoding does not hold across all SSE vendors. Some hosted SSE services do not support emitting arbitrary application payloads as the top-level `data` value and instead wrap the payload inside an additional envelope layer — for example, Ably nests the OFREP payload under `data.data`. Others may deliver the payload in a non-JSON format.
 
-This ADR therefore relaxes that requirement. The fixed shape above is only the **default**; what the protocol actually requires is that the provider can obtain an OFREP event object with `type` (and optional `etag` / `lastModified`) from each SSE message and act on it. How the raw `data` is decoded into that object is an implementation detail that may be overridden, so the SDK is not bound to a single wire encoding.
+What the protocol requires is that the provider can obtain an OFREP event object with `type` (and optional `etag` / `lastModified`) from each SSE message and act on it. How the raw `data` is decoded into that object is an implementation detail that may be overridden, so the SDK is not bound to a single wire encoding.
 
 The default parsing behavior is: JSON-parse the SSE `data` field when it is a string, otherwise pass the value through as-is (some SSE client implementations deserialize the payload before handing it to the application). Endpoints that emit the OFREP event payload directly need no customization.
 
