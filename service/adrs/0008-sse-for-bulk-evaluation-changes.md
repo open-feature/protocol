@@ -81,13 +81,13 @@ data: {"type": "refetchEvaluation", "etag": "\"abc123\"", "lastModified": 177162
 
 The SSE envelope `event:` field is always `message`. Using a named SSE event type (e.g. `event: refetchEvaluation`) was considered but rejected — most SSE client libraries (Java, Swift, .NET, Python) do not support registering handlers per named event type and require manual dispatch regardless, so routing via a `type` field inside the JSON `data` payload achieves the same result consistently across all implementations. It also makes ignoring unknown future event types trivial with a single generic handler.
 
-Providers must inspect `data.type` to determine behavior — not the SSE envelope `event:` field.
+Providers must inspect the `type` field on the parsed [sseEvent](../openapi.yaml) message to determine behavior — not the SSE envelope `event:` field.
 
 #### Customizable payload parsing
 
 The JSON shape shown above is the default wire format, not a fixed requirement. The protocol does not bind providers to one specific on-the-wire encoding, because a single encoding does not hold across all SSE vendors. Some hosted SSE services do not support emitting arbitrary application payloads as the top-level `data` value and instead wrap the payload inside an additional envelope layer — for example, Ably nests the OFREP payload under `data.data`. Others may deliver the payload in a non-JSON format.
 
-What the protocol requires is that the provider can obtain an OFREP event object with `type` (and optional `etag` / `lastModified`) from each SSE message and act on it. How the raw `data` is decoded into that object is an implementation detail that may be overridden, so the SDK is not bound to a single wire encoding.
+What the protocol requires is that the provider can obtain an [sseEvent](../openapi.yaml) from each SSE message and act on it. How the raw `data` is decoded into that object is an implementation detail that may be overridden, so the SDK is not bound to a single wire encoding.
 
 The default parsing behavior is: JSON-parse the SSE `data` field when it is a string, otherwise pass the value through as-is (some SSE client implementations deserialize the payload before handing it to the application). Endpoints that emit the OFREP event payload directly need no customization.
 
