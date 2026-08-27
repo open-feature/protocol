@@ -163,6 +163,7 @@ Provider implementation guidelines:
    - If `eventStreams` is present and the URL set has changed, close existing connections then connect to the new URLs.
 7. Providers SHOULD coalesce concurrent `refetchEvaluation` events into a single re-fetch request (e.g., via in-flight deduplication or a short debounce window) to avoid amplifying load on the flag management system when multiple connections fire simultaneously.
 8. Shared, extensible provider implementations may allow the SSE payload parsing to be overridden (see [Customizable payload parsing](#customizable-payload-parsing)); this is optional and not required of providers targeting endpoints that emit the OFREP payload directly. The default parses string `data` as JSON and passes non-string `data` through unchanged; an override lets integrations with vendors that wrap the payload (e.g., Ably's `data.data` envelope) or use non-JSON formats extract the OFREP event object before `type` / `etag` / `lastModified` are read.
+9. In cases where the provider sends to the OFREP server an `If-None-Match`, or other cache headers in addition to the `flagConfigEtag` query parameter, the query parameter MUST NOT downgrade a 200 based on these to a 304. For example: A would be 200 from SSE `flagConfigEtag` being different must not be downgraded to a 304 because the `If-None-Match` HTTP ETag matched and would have returned a 304 based on the response being the same.
 
 ### OpenAPI Schema Additions
 
