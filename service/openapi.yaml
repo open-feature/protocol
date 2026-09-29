@@ -611,10 +611,6 @@ components:
         may include an optional `targetingKey` identifying the subject of the evaluation, along
         with additional properties such as user attributes, session data, or request metadata
         that can be used for targeting rules.
-
-        The `targetingKey` is optional, matching the OpenFeature specification's evaluation
-        context. Providers may require it for fractional evaluation, rules, or overrides
-        targeting specific subjects, and may behave unpredictably when it is absent.
       properties:
         targetingKey:
           type: string
