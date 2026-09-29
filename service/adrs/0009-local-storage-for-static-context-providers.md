@@ -8,7 +8,7 @@ Accepted
 
 Proposed amendment (2026-06-19): tie the cache key to the OFREP resource the evaluation was fetched from by including the provider's bound `domain`, the OFREP base URL, and the auth credential, in addition to the `targetingKey`, and expose a cache-key generator function so applications can customize the key. See [open-feature/spec#393](https://github.com/open-feature/spec/pull/393).
 
-Proposed amendment (2026-09-29): define cache behavior when the evaluation context has no `targetingKey`. The `targetingKey` is optional in the OpenFeature evaluation context, so the cache key must be well defined in its absence: an absent key is encoded as a distinct absent value rather than coalesced to an empty string, and the rule for clearing a persisted entry is expressed in terms of the derived cache key rather than the `targetingKey` alone.
+Proposed amendment (2026-09-29): define cache behavior when the evaluation context has no `targetingKey`. The `targetingKey` is optional in the OpenFeature evaluation context, so the cache key must be well defined in its absence: an absent key normalizes to an empty string and keys the same entry as an empty-string key, and the rule for clearing a persisted entry is expressed in terms of the derived cache key rather than the `targetingKey` alone.
 
 ## Context
 
@@ -67,7 +67,7 @@ type CacheKeyGenerator = (input: {
 
 The default generator combines the OFREP base URL, auth credential, bound `domain`, and `targetingKey` into unambiguous key material.
 How those fields are combined and hashed is an implementation detail, but the combination must be injective so distinct inputs cannot collide.
-Injectivity applies to absent values too: an absent `targetingKey` must not produce the same key material as an empty-string `targetingKey`, and the same holds for `auth` and `domain` (see "Missing targeting key" below).
+Absent values are normalized before the components are combined: an absent `targetingKey`, `auth`, or `domain` is treated as an empty string. Injectivity applies over the normalized components (see "Missing targeting key" below).
 
 Example persisted value:
 
@@ -244,15 +244,15 @@ When the provider has already initialized from cache (cache hit path in `local-c
 
 The `targetingKey` is optional in the OpenFeature evaluation context, so a static-context provider may be asked to persist an evaluation for a context that has none. This is a supported case and must not be treated as an error: providers must not refuse to persist, refuse to load, or raise `TARGETING_KEY_MISSING` solely because the context has no `targetingKey`.
 
-An absent `targetingKey` contributes a component that encodes absence, distinct from every string value including `""`. The cache key then reduces to the OFREP resource inputs (base URL, auth credential, and bound `domain`), exactly as an absent `domain` or absent auth credential does.
+An absent `targetingKey` normalizes to an empty string, so the cache key reduces to the OFREP resource inputs (base URL, auth credential, and bound `domain`), exactly as an absent `domain` or absent auth credential does.
 
 Two consequences follow, and providers should document both.
 
 First, **all contexts without a `targetingKey` share one persisted entry** for a given OFREP resource. The key carries no identity component, so nothing invalidates the entry when the subject changes. This is the intended behavior: an anonymous context asserts no identity, so there is no identity to separate entries by. It does mean that on a shared device, two anonymous sessions read the same persisted evaluation. Applications where that is not acceptable should set a `targetingKey`, supply a cache-key generator that includes a distinguishing context property, or set `cacheMode` to `disabled`.
 
-Second, **an absent `targetingKey` and an empty-string `targetingKey` must produce different key material.** Coalescing a missing key to `""` makes the two indistinguishable, and SDKs already diverge on whether a missing, null, or empty targeting key are equivalent (see [open-feature/flagd#1948](https://github.com/open-feature/flagd/issues/1948)). The cache should not silently merge them: an application that sets `targetingKey: ""` has supplied a value, even an unhelpful one, and should not share a cache entry with an application that supplied nothing. The injectivity requirement on the key material combination already implies this; it is stated here because coalescing with a default (`targetingKey ?? ""`) is the natural implementation and violates it.
+Second, **an absent `targetingKey` and an empty-string `targetingKey` key the same entry.** Both normalize to an empty string. This follows the direction the ecosystem settled on: [open-feature/flagd#1948](https://github.com/open-feature/flagd/issues/1948) found that SDKs diverged on whether a missing, null, or empty targeting key were equivalent, and resolved that all three should behave identically. The cache should not introduce a distinction the rest of the ecosystem does not make, and neither the OpenFeature specification nor any SDK assigns an empty targeting key a meaning separate from an absent one.
 
-Clearing a persisted entry is governed by the derived cache key, not the `targetingKey` in isolation. Providers should compare the key material produced for the old and new contexts and clear the old entry when it changes. Comparing `targetingKey` values alone is incorrect in two directions once the key is customizable: a configured cache-key generator that incorporates other context properties can change the key while the `targetingKey` is untouched, leaving an orphaned entry; and treating absent and empty-string as different `targetingKey` values while the generator maps them to the same key material would clear an entry that the new context is about to reuse, forcing an unnecessary fetch.
+Clearing a persisted entry is governed by the derived cache key, not the `targetingKey` in isolation. Providers should compare the key material produced for the old and new contexts and clear the old entry when it changes. Comparing `targetingKey` values alone is incorrect in two directions once the key is customizable: a configured cache-key generator that incorporates other context properties can change the key while the `targetingKey` is untouched, leaving an orphaned entry; and treating absent and empty-string as different `targetingKey` values, when both normalize to the same key material, would clear an entry that the new context is about to reuse, forcing an unnecessary fetch.
 
 ### Refresh and revalidation
 
