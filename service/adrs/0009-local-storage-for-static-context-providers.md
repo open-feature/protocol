@@ -8,7 +8,7 @@ Accepted
 
 Proposed amendment (2026-06-19): tie the cache key to the OFREP resource the evaluation was fetched from by including the provider's bound `domain`, the OFREP base URL, and the auth credential, in addition to the `targetingKey`, and expose a cache-key generator function so applications can customize the key. See [open-feature/spec#393](https://github.com/open-feature/spec/pull/393).
 
-Proposed amendment (2026-09-29): define the cache key when the evaluation context has no `targetingKey`. An absent `targetingKey` normalizes to an empty string, and entries are cleared based on the derived cache key rather than the `targetingKey` alone.
+Proposed amendment (2026-09-29): do not persist evaluations for contexts with no `targetingKey`, since the cache key would then carry no identity and the entry could be served to a different subject. Applications that want persistence for anonymous contexts opt in with a cache-key generator.
 
 ## Context
 
@@ -67,7 +67,6 @@ type CacheKeyGenerator = (input: {
 
 The default generator combines the OFREP base URL, auth credential, bound `domain`, and `targetingKey` into unambiguous key material.
 How those fields are combined and hashed is an implementation detail, but the combination must be injective so distinct inputs cannot collide.
-Absent values normalize to an empty string before the components are combined, and injectivity applies over the normalized components.
 
 Example persisted value:
 
@@ -242,13 +241,15 @@ When the provider has already initialized from cache (cache hit path in `local-c
 
 ### Missing targeting key
 
-The `targetingKey` is optional, so a provider may be asked to persist an evaluation for a context without one. This is a supported case: providers must not refuse to persist or load, and must not raise `TARGETING_KEY_MISSING`, because the context has no `targetingKey`.
+The `targetingKey` is optional, so a provider may be asked to evaluate a context without one. Providers must still evaluate normally and must not raise `TARGETING_KEY_MISSING`, but they should not persist the result.
 
-An absent `targetingKey` normalizes to an empty string, so the key reduces to the OFREP resource inputs (base URL, auth credential, and bound `domain`). An absent and an empty-string `targetingKey` therefore key the same entry, matching [open-feature/flagd#1948](https://github.com/open-feature/flagd/issues/1948), which resolved that a missing, null, and empty targeting key behave identically.
+Without a `targetingKey` the cache key carries no identity, so it reduces to the OFREP resource inputs (base URL, auth credential, and bound `domain`) and is identical for every context against that resource. Nothing invalidates the entry when the subject or the rest of the context changes. An application that signs a user out and continues anonymously, or that changes anonymous properties such as `country` or `plan`, would be served the previous evaluation even though the server would return different values.
 
-Providers should document one consequence: all contexts without a `targetingKey` share a single persisted entry per OFREP resource. The key holds no identity, so nothing invalidates the entry when the subject changes, and on a shared device two anonymous sessions read the same evaluation. Applications that need them separated should set a `targetingKey`, add a distinguishing property through the cache-key generator, or set `cacheMode` to `disabled`.
+Providers should therefore treat a context with no `targetingKey` as non-persistable, neither reading nor writing an entry, so `local-cache-first` behaves like `disabled` for that context. A provider holding an entry from an earlier context that had a `targetingKey` should clear it when the `targetingKey` is removed.
 
-Entries are cleared based on the derived cache key, not the `targetingKey` alone. A cache-key generator that includes other context properties can change the key while the `targetingKey` is unchanged, leaving a stale entry behind.
+Applications that want persistence for anonymous contexts should supply a cache-key generator. Configuring one asserts that the returned key material identifies the subject, for example a stable device or anonymous ID, and the provider persists using that key.
+
+Entries are cleared based on the derived cache key, not the `targetingKey` alone. A generator that includes other context properties can change the key while the `targetingKey` is unchanged, leaving a stale entry behind.
 
 ### Refresh and revalidation
 
@@ -323,6 +324,7 @@ A single default (local-cache-first) with an explicit per-application opt-out is
 - Providers should avoid persisting raw `targetingKey` values when `cacheKeyHash` is sufficient for matching
 - Providers should expose a `cacheMode` option with values `local-cache-first` (default), `network-first`, and `disabled`. `network-first` and `disabled` block `initialize()` on the network request; `local-cache-first` returns from `initialize()` immediately when a persisted entry exists
 - Providers should expose an optional cache-key generator function so applications and wrapping providers can customize the key material (narrowing or broadening the default); the provider always hashes whatever the generator returns
+- Providers should not read or write a persisted entry for a context with no `targetingKey` unless a cache-key generator is configured; `local-cache-first` behaves like `disabled` for such contexts
 - Providers should clear or replace persisted entries when the derived cache key changes, such as on logout or user switch (a `targetingKey` change, including to or from absent) or when the provider is re-bound to a different `domain`. Compare the key material the generator produces, not the `targetingKey` alone
 - In `local-cache-first` mode, the `initialize()` function should return immediately when a matching cached entry exists, allowing the SDK to emit `PROVIDER_READY` from cache
 - Providers should emit `PROVIDER_CONFIGURATION_CHANGED` when fresh values replace cached values after a background refresh
