@@ -2,7 +2,7 @@ openapi: 3.1.0
 servers:
   - url: /
 info:
-  version: 0.3.0
+  version: 0.4.0
   title: OpenFeature Remote Evaluation Protocol (OFREP)
   description: |
     ---
@@ -88,7 +88,7 @@ paths:
               example:
                 key: my-flag
                 errorCode: INVALID_CONTEXT
-                errorDetails: "Context is missing required targetingKey property"
+                errorDetails: "Context property 'plan' must be a string"
         "404":
           description: Flag not found. The specified flag key does not exist in the flag management system.
           content:
@@ -207,7 +207,7 @@ paths:
                 $ref: "#/components/schemas/bulkEvaluationFailure"
               example:
                 errorCode: INVALID_CONTEXT
-                errorDetails: "Context is missing required targetingKey property"
+                errorDetails: "Context property 'plan' must be a string"
         "401":
           description: Unauthorized. Authentication credentials are missing, invalid, or expired.
         "403":
@@ -344,7 +344,7 @@ components:
         errorDetails:
           type: string
           description: Optional error details description for logging or debugging purposes
-          example: "Context is missing required targetingKey property"
+          example: "Context property 'plan' must be a string"
       required:
         - errorCode
     evaluationRequest:
@@ -607,11 +607,10 @@ components:
     context:
       type: object
       description: |
-        Evaluation context containing information used to evaluate feature flags. The context 
-        includes a `targetingKey` (required) along with additional properties such as 
-        user attributes, session data, or request metadata that can be used for targeting rules.
-      required:
-        - targetingKey
+        Evaluation context containing information used to evaluate feature flags. The context
+        may include an optional `targetingKey` identifying the subject of the evaluation, along
+        with additional properties such as user attributes, session data, or request metadata
+        that can be used for targeting rules.
       properties:
         targetingKey:
           type: string
